@@ -1,0 +1,3 @@
+# server
+
+FastAPI app placeholder.

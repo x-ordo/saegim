@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+
+  api:
+    build: ./server
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_BASE_URL: ${APP_BASE_URL}
+      WEB_BASE_URL: ${WEB_BASE_URL}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      STORAGE_DRIVER: ${STORAGE_DRIVER}
+      LOCAL_UPLOAD_DIR: ${LOCAL_UPLOAD_DIR}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_MIN: ${JWT_EXPIRES_MIN}
+      MESSAGING_PROVIDER: ${MESSAGING_PROVIDER}
+      KAKAO_SENDER_KEY: ${KAKAO_SENDER_KEY}
+      KAKAO_TEMPLATE_PROOF_DONE: ${KAKAO_TEMPLATE_PROOF_DONE}
+      SMS_SENDER_ID: ${SMS_SENDER_ID}
+      FALLBACK_SMS_ENABLED: ${FALLBACK_SMS_ENABLED}
+      TOKEN_LENGTH: ${TOKEN_LENGTH}
+      PUBLIC_TOKEN_RATE_LIMIT_PER_MIN: ${PUBLIC_TOKEN_RATE_LIMIT_PER_MIN}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
+      - ./data/uploads:/data/uploads
+    depends_on:
+      - db
+
+  web:
+    build: ./web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+    depends_on:
+      - api
