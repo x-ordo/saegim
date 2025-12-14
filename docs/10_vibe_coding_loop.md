@@ -1,5 +1,7 @@
 # 10. 1인 바이브코딩 루프 (Solo Loop)
 
+For foundational development principles, refer to the project constitution: `.specify/memory/constitution.md`
+
 ## Loop
 1) Define 1 vertical slice (end-to-end)
 2) Update docs (scope + API + data)

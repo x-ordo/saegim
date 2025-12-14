@@ -26,8 +26,9 @@ docker compose up -d --build
 - 로드맵: `docs/09_roadmap.md`
 - 1인 바이브코딩 루프: `docs/10_vibe_coding_loop.md`
 - 에이전트 지시서: `CLAUDE.md`, `CODEX.md`, `SPECKIT_PROMPT.md`
+- **Foundational Development Principles**: `.specify/memory/constitution.md`
 
-## Principles (Non‑Negotiable)
+## Product Principles (Non-Negotiable)
 - 구매자/수신자: **로그인 0, 토큰 링크만**
 - QR에는 **PII(개인정보) 절대 금지**
 - 증빙 등록 플로우는 **30초 컷**
