@@ -24,11 +24,11 @@ Sync Impact Report:
 
 ## Core Principles
 
-### I. Library-First
-Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries.
+### I. Core Domain Logic First
+Core business logic should be well-encapsulated. For web applications, a standard Service Layer Pattern is preferred over forcing every feature into a standalone library.
 
-### II. CLI Interface
-Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats.
+### II. API-First (HTTP/JSON)
+Features should be exposed via a clear HTTP/JSON API. A command-line interface (CLI) is optional and should only be created for specific debugging or operational tools, not for every feature.
 
 ### III. Test-First (NON-NEGOTIABLE)
 TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced.
@@ -38,6 +38,9 @@ Focus areas requiring integration tests: New library contract tests, Contract ch
 
 ### V. Observability
 Text I/O ensures debuggability; Structured logging required.
+
+### VI. Pragmatism over Purity
+For v1, development speed and delivering user value take precedence over perfect abstraction. Choose the simplest path that meets the immediate need, even if it's not the most "correct" or scalable long-term solution.
 
 ## Architecture & Technology
 
@@ -51,4 +54,4 @@ All code changes require peer review. Adherence to established coding standards 
 
 The constitution supersedes all other practices. Amendments require a documented proposal, team approval, and a clear migration plan. Compliance is reviewed periodically during code reviews and project milestones. Use `docs/10_vibe_coding_loop.md` for specific guidance on development workflow.
 
-**Version**: 0.1.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
+**Version**: 0.2.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14

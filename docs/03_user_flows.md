@@ -19,5 +19,5 @@
 
 ## Failure Flows
 - Token invalid/revoked → show error + call vendor
-- Upload fails → retry, keep draft locally (optional)
+- On upload failure, save photo locally and retry automatically/manually. Do NOT force retake.
 - Messaging fails → fallback SMS (log both)

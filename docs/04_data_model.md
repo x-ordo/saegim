@@ -12,7 +12,7 @@
 
 ## Key Policies
 - QR contains only `qr_tokens.token`
-- `contacts.phone_e164` can be stored encrypted at rest (v1.5); v1: 최소 접근/마스킹
+- `contacts.phone_e164` MUST be stored encrypted at rest (application-side or DB-side).
 - `notifications` keeps provider response + fallback info
 
 ## Indexes (minimum)

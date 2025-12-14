@@ -12,7 +12,7 @@
 ### Proof Mobile Web
 - QR token landing (order summary)
 - One-tap camera → capture → upload
-- Upload retry
+- Client-side Retry (Local Storage / Background Sync)
 - Done page
 
 ### Public Proof Page

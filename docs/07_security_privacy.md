@@ -5,9 +5,9 @@
 - Public endpoints: token only + rate limiting
 - Token revoke/reissue supported
 - Logs: phone number는 마스킹/해시 중심
+- contacts.phone_e164 encryption at rest
 
 ## Recommended (v1.5)
-- contacts.phone_e164 encryption at rest
 - short-lived upload URL (S3 presign)
 - signed URLs for proof images
 
