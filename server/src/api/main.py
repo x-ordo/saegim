@@ -1,50 +1,76 @@
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENTITY
-from server.src.services.proof_service import ProofService, get_proof_service
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+import os
+
+from src.core.config import settings
+from src.utils.rate_limiter import limiter
+from src.api.routes import public_router
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="ProofLink API")
+# Create FastAPI app
+app = FastAPI(
+    title="ProofLink API",
+    description="QR-based delivery proof system with dual notifications",
+    version="1.0.0",
+)
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        settings.WEB_BASE_URL,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files for uploaded proofs
+upload_dir = settings.LOCAL_UPLOAD_DIR
+os.makedirs(upload_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
+
+# Include routers
+app.include_router(public_router)
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the ProofLink API"}
+    """Root endpoint - health check."""
+    return {
+        "message": "Welcome to the ProofLink API",
+        "version": "1.0.0",
+        "status": "healthy",
+    }
 
 
-@app.post("/proof/{token}")
-async def upload_proof_of_delivery(
-    token: str,
-    file: UploadFile = File(...),
-    proof_service: ProofService = Depends(get_proof_service),
-):
-    """
-    Uploads a proof of delivery image for the order associated with the token.
-    """
-    if not file.content_type.startswith("image/"):
-        logger.warning(f"Invalid file type uploaded for token {token}: {file.content_type}")
-        raise HTTPException(
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid file type. Only images are allowed.",
-        )
+@app.get("/health")
+def health_check():
+    """Health check endpoint for monitoring."""
+    return {"status": "healthy"}
 
-    try:
-        proof = await proof_service.create_proof(token=token, file=file)
-        logger.info(f"Successfully created proof {proof.id} for order {proof.order_id}")
-        return {
-            "status": "success",
-            "message": "Proof of delivery uploaded successfully.",
-            "proof_id": proof.id,
-        }
-    except ValueError as e:
-        logger.error(f"Invalid token used for upload: {token}")
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.exception(f"An unexpected error occurred during proof upload for token {token}")
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred while processing the upload.",
-        )
+
+# Custom exception handler for rate limiting
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "RATE_LIMITED: Too many requests. Please try again later."},
+    )
