@@ -3,6 +3,10 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { UploadForm } from '../../components/UploadForm';
 import { getOrderByToken, getProofByToken, OrderSummary, ProofData } from '../../services/api';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Loader2, AlertCircle, CheckCircle, Upload, Package, Tag } from 'lucide-react';
 
 export default function ProofPage() {
   const router = useRouter();
@@ -52,81 +56,123 @@ export default function ProofPage() {
   const hideSaegim = Boolean(order?.hide_saegim || existingProof?.hide_saegim);
 
   return (
-    <div className="page">
-      <div className="container sm">
-        <div className="card flat" style={{ marginBottom: 14 }}>
-          <div className="brand" style={{ marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+    <div className="shadcn min-h-screen bg-background">
+      <div className="container max-w-lg py-6 px-4">
+        {/* Header */}
+        <Card className="mb-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
               {brandLogo && (
                 <img
                   src={brandLogo}
                   alt={brandName}
-                  style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }}
+                  className="h-10 w-10 rounded-lg object-cover"
                 />
               )}
-              <div>
-                <div className="name">{brandName}</div>
-                <div className="tag">배송 증빙</div>
+              <div className="flex-1">
+                <h1 className="font-semibold">{brandName}</h1>
+                <p className="text-sm text-muted-foreground">수선 증빙 업로드</p>
               </div>
-              <div style={{ marginLeft: 'auto' }} className="muted">
-                {!hideSaegim ? 'Powered by 새김' : ''}
-              </div>
+              {!hideSaegim && (
+                <span className="text-xs text-muted-foreground">Powered by 새김</span>
+              )}
             </div>
+          </CardContent>
+        </Card>
+
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        )}
 
-          {loading && <div className="muted">로딩 중…</div>}
-
-          {!loading && error && (
-            <div className="danger">
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>오류</div>
-              <div>{error}</div>
-              <div className="muted" style={{ marginTop: 8 }}>문제가 계속되면 업체에 문의해주세요.</div>
-            </div>
-          )}
-
-          {!loading && existingProof && (
-            <div className="ok">
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>이미 업로드 완료</div>
-              <div className="muted">확인 링크로 이동하세요.</div>
-              <div style={{ marginTop: 10 }}>
-                <Link className="btn secondary" href={`/p/${t}`}>확인 페이지 열기</Link>
-              </div>
-            </div>
-          )}
-
-          {!loading && order && (
-            <div style={{ marginTop: 10 }}>
-              {order.organization_logo && (
-                <img
-                  src={order.organization_logo}
-                  alt={order.organization_name}
-                  style={{ maxWidth: 140, maxHeight: 48, objectFit: 'contain', marginBottom: 10 }}
-                />
-              )}
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>수선 증빙 업로드</div>
-              <div className="muted">주문번호: <b>{order.order_number}</b> {order.context ? `· ${order.context}` : ''}</div>
-              <div className="muted">업체: {order.organization_name}</div>
-              {order.asset_meta && (
-                <div className="muted" style={{ marginTop: 4 }}>
-                  {order.asset_meta.brand && <span>{order.asset_meta.brand}</span>}
-                  {order.asset_meta.model && <span> {order.asset_meta.model}</span>}
+        {!loading && error && (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
+                <div>
+                  <p className="font-semibold text-destructive">오류</p>
+                  <p className="mt-1 text-sm text-destructive/80">{error}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">문제가 계속되면 업체에 문의해주세요.</p>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && existingProof && (
+          <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+            <CardContent className="pt-6 text-center">
+              <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+              <p className="text-lg font-semibold text-green-800 dark:text-green-200">이미 업로드 완료</p>
+              <p className="mt-1 text-sm text-green-600 dark:text-green-400">확인 링크로 이동하세요.</p>
+              <Button variant="outline" className="mt-4" asChild>
+                <Link href={`/p/${t}`}>확인 페이지 열기</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {!loading && order && (
-          <div className="card">
-            <div className="muted" style={{ marginBottom: 10 }}>
-              안내: 수선 전/후 사진을 업로드해주세요. 업로드 완료 후 고객에게 확인 링크가 전달됩니다.
-            </div>
-            <UploadForm
-              token={t}
-              hasBeforeProof={order.has_before_proof}
-              hasAfterProof={order.has_after_proof}
-            />
-          </div>
+          <>
+            {/* Order Info Card */}
+            <Card className="mb-4">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">수선 증빙 업로드</CardTitle>
+                </div>
+                <CardDescription>
+                  주문번호: <span className="font-semibold text-foreground">{order.order_number}</span>
+                  {order.context && <span className="ml-2">· {order.context}</span>}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {/* Asset Info */}
+                {order.asset_meta && (order.asset_meta.brand || order.asset_meta.model) && (
+                  <div className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
+                    {order.asset_meta.brand && (
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{order.asset_meta.brand}</span>
+                      </div>
+                    )}
+                    {order.asset_meta.model && (
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{order.asset_meta.model}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Proof Status */}
+                <div className="mt-3 flex gap-2">
+                  <Badge variant={order.has_before_proof ? 'success' : 'outline'}>
+                    수선 전 {order.has_before_proof ? '완료' : '대기'}
+                  </Badge>
+                  <Badge variant={order.has_after_proof ? 'success' : 'outline'}>
+                    수선 후 {order.has_after_proof ? '완료' : '대기'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Upload Form */}
+            <Card>
+              <CardContent className="pt-6">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  수선 전/후 사진을 업로드해주세요. 업로드 완료 후 고객에게 확인 링크가 전달됩니다.
+                </p>
+                <UploadForm
+                  token={t}
+                  hasBeforeProof={order.has_before_proof}
+                  hasAfterProof={order.has_after_proof}
+                />
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     </div>

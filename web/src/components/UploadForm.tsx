@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { uploadProof, ProofType } from '../services/api';
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
+import { Camera, Upload, RefreshCw, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface UploadFormProps {
   token: string;
@@ -88,13 +92,16 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
 
   if (status === 'success') {
     return (
-      <div className="ok">
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>업로드 완료</div>
-        <div className="muted">확인 페이지로 이동합니다…</div>
-        <div style={{ marginTop: 10 }}>
-          <a className="btn secondary" href={`/p/${token}`}>확인 페이지 열기</a>
-        </div>
-      </div>
+      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+        <CardContent className="pt-6 text-center">
+          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+          <p className="text-lg font-semibold text-green-800 dark:text-green-200">업로드 완료</p>
+          <p className="mt-1 text-sm text-green-600 dark:text-green-400">확인 페이지로 이동합니다…</p>
+          <Button variant="outline" className="mt-4" asChild>
+            <a href={`/p/${token}`}>확인 페이지 열기</a>
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -102,93 +109,144 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
   const allDone = hasBeforeProof && hasAfterProof;
 
   return (
-    <div className="stack">
+    <div className="space-y-4">
       <input
         type="file"
         accept="image/*"
         capture="environment"
         onChange={onFileChange}
         ref={fileInputRef}
-        style={{ display: 'none' }}
+        className="hidden"
       />
 
       {/* Proof Type Selector */}
-      <div>
-        <div className="label">증빙 유형</div>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <button
-            className={`btn ${proofType === 'BEFORE' ? '' : 'secondary'}`}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-muted-foreground">증빙 유형</label>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={proofType === 'BEFORE' ? 'default' : 'outline'}
+            size="xl"
             onClick={() => setProofType('BEFORE')}
             disabled={hasBeforeProof || status === 'uploading'}
-            style={{ flex: 1, minWidth: 80 }}
+            className="relative"
           >
-            수선 전 {hasBeforeProof && '(완료)'}
-          </button>
-          <button
-            className={`btn ${proofType === 'AFTER' ? '' : 'secondary'}`}
+            수선 전
+            {hasBeforeProof && (
+              <Badge variant="success" className="absolute -right-1 -top-1 text-xs">완료</Badge>
+            )}
+          </Button>
+          <Button
+            variant={proofType === 'AFTER' ? 'default' : 'outline'}
+            size="xl"
             onClick={() => setProofType('AFTER')}
             disabled={hasAfterProof || status === 'uploading'}
-            style={{ flex: 1, minWidth: 80 }}
+            className="relative"
           >
-            수선 후 {hasAfterProof && '(완료)'}
-          </button>
+            수선 후
+            {hasAfterProof && (
+              <Badge variant="success" className="absolute -right-1 -top-1 text-xs">완료</Badge>
+            )}
+          </Button>
         </div>
       </div>
 
       {previewUrl && (
-        <div>
-          <div className="label">미리보기</div>
-          <img
-            src={previewUrl}
-            alt="preview"
-            style={{ width: '100%', borderRadius: 16, border: '1px solid var(--line)' }}
-          />
-          <div className="muted" style={{ marginTop: 8 }}>
-            파일: {file?.name} ({Math.round((file?.size || 0) / 1024)}KB)
-          </div>
-        </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <img
+              src={previewUrl}
+              alt="preview"
+              className="w-full object-cover"
+            />
+            <div className="border-t p-3">
+              <p className="text-sm text-muted-foreground">
+                파일: {file?.name} ({Math.round((file?.size || 0) / 1024)}KB)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {!file && !allDone && (
-        <button className="btn" onClick={openCamera}>
+        <Button size="xl" className="w-full touch-target" onClick={openCamera}>
+          <Camera className="mr-2 h-5 w-5" />
           카메라 열기
-        </button>
+        </Button>
       )}
 
       {allDone && !file && (
-        <div className="ok">
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>모든 증빙 완료</div>
-          <div className="muted">수선 전/후 사진이 모두 업로드되었습니다.</div>
-          <div style={{ marginTop: 10 }}>
-            <a className="btn" href={`/p/${token}`}>결과 확인하기</a>
-          </div>
-        </div>
+        <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+          <CardContent className="pt-6 text-center">
+            <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+            <p className="text-lg font-semibold text-green-800 dark:text-green-200">모든 증빙 완료</p>
+            <p className="mt-1 text-sm text-green-600 dark:text-green-400">수선 전/후 사진이 모두 업로드되었습니다.</p>
+            <Button className="mt-4" asChild>
+              <a href={`/p/${token}`}>결과 확인하기</a>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {file && (
-        <div className="row">
-          <button className="btn" onClick={upload} disabled={status === 'uploading'}>
-            {status === 'uploading' ? '업로드 중…' : `${PROOF_TYPE_LABELS[proofType]} 업로드`}
-          </button>
-          <button className="btn secondary" onClick={openCamera} disabled={status === 'uploading'}>
-            다시 촬영
-          </button>
-          <button className="btn ghost" onClick={clear} disabled={status === 'uploading'}>
-            초기화
-          </button>
+        <div className="grid gap-2">
+          <Button
+            size="xl"
+            className="w-full touch-target"
+            onClick={upload}
+            disabled={status === 'uploading'}
+          >
+            {status === 'uploading' ? (
+              <>
+                <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                업로드 중…
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-5 w-5" />
+                {PROOF_TYPE_LABELS[proofType]} 업로드
+              </>
+            )}
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={openCamera}
+              disabled={status === 'uploading'}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              다시 촬영
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={clear}
+              disabled={status === 'uploading'}
+            >
+              <X className="mr-2 h-4 w-4" />
+              초기화
+            </Button>
+          </div>
         </div>
       )}
 
       {status === 'error' && (
-        <div className="danger">
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>업로드 실패</div>
-          <div>{errorMessage}</div>
-        </div>
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
+              <div>
+                <p className="font-semibold text-destructive">업로드 실패</p>
+                <p className="mt-1 text-sm text-destructive/80">{errorMessage}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="muted">
+      <p className="text-center text-sm text-muted-foreground">
         팁: 제품 전체가 잘 보이도록 촬영해주세요. 수선 전/후 비교가 명확해집니다.
-      </div>
+      </p>
     </div>
   );
 };
