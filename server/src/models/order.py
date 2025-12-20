@@ -1,5 +1,6 @@
 import enum
 from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from src.core.database import Base
@@ -24,6 +25,7 @@ class Order(Base):
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False, index=True)
     order_number = Column(String(100), nullable=False)
     context = Column(String(500), nullable=True)  # e.g., "OO장례식장 3호실", "Flower Basket"
+    asset_meta = Column(JSONB, nullable=True)  # Asset metadata: brand, model, serial, repair_note, etc.
 
     # Sender (발주자/구매자) - encrypted
     sender_name = Column(String(100), nullable=False)
@@ -40,5 +42,5 @@ class Order(Base):
     # Relationships
     organization = relationship("Organization", back_populates="orders")
     qr_token = relationship("QRToken", back_populates="order", uselist=False)
-    proof = relationship("Proof", back_populates="order", uselist=False)
+    proofs = relationship("Proof", back_populates="order", uselist=True)
     notifications = relationship("Notification", back_populates="order")

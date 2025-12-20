@@ -1,12 +1,36 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 // Types
+export type ProofType = 'BEFORE' | 'AFTER' | 'RECEIPT' | 'DAMAGE' | 'OTHER';
+
+export interface AssetMeta {
+  brand?: string;
+  model?: string;
+  serial?: string;
+  material?: string;
+  color?: string;
+  repair_type?: string;
+  repair_note?: string;
+  purchase_date?: string;
+  estimated_value?: number;
+}
+
+export interface ProofItem {
+  id: number;
+  proof_type: ProofType;
+  proof_url: string;
+  uploaded_at: string;
+}
+
 export interface OrderSummary {
   order_number: string;
   context: string | null;
   organization_name: string;
   organization_logo: string | null;
   hide_saegim: boolean;
+  asset_meta?: AssetMeta;
+  has_before_proof: boolean;
+  has_after_proof: boolean;
 }
 
 export interface ProofData {
@@ -15,13 +39,17 @@ export interface ProofData {
   organization_name: string;
   organization_logo: string | null;
   hide_saegim: boolean;
-  proof_url: string;
-  uploaded_at: string;
+  asset_meta?: AssetMeta;
+  proofs: ProofItem[];
+  // Backward compatibility
+  proof_url?: string;
+  uploaded_at?: string;
 }
 
 export interface UploadResponse {
   status: string;
   proof_id: number;
+  proof_type: ProofType;
   message: string;
 }
 
@@ -53,16 +81,23 @@ export const getOrderByToken = async (token: string): Promise<OrderSummary | nul
 };
 
 /**
- * Upload proof of delivery
+ * Upload proof with type (BEFORE, AFTER, RECEIPT, DAMAGE, OTHER)
  */
-export const uploadProof = async (token: string, file: File): Promise<UploadResponse> => {
+export const uploadProof = async (
+  token: string,
+  file: File,
+  proofType: ProofType = 'AFTER'
+): Promise<UploadResponse> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}/public/proof/${token}/upload`, {
-    method: 'POST',
-    body: formData,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/public/proof/${token}/upload?proof_type=${proofType}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
 
   if (!response.ok) {
     if (response.status === 429) {

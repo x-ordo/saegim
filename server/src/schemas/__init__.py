@@ -1,6 +1,6 @@
 from .organization import OrganizationBase, OrganizationCreate, OrganizationResponse
 from .order import OrderCreate, OrderResponse, OrderSummary, PublicOrderSummary
-from .proof import ProofUploadResponse, PublicProofResponse
+from .proof import ProofUploadResponse, PublicProofResponse, ProofItem
 from .notification import NotificationLog
 
 __all__ = [
@@ -16,6 +16,7 @@ __all__ = [
     # Proof
     "ProofUploadResponse",
     "PublicProofResponse",
+    "ProofItem",
     # Notification
     "NotificationLog",
 ]

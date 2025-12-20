@@ -1,12 +1,12 @@
 import os
 import logging
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 from fastapi import UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
-from src.models import Proof, Order, OrderStatus
+from src.models import Proof, ProofType, Order, OrderStatus
 from src.core.config import settings
 from src.services.token_service import TokenService
 from src.services.notification_service import NotificationService
@@ -30,20 +30,25 @@ class ProofService:
         token: str,
         file: UploadFile,
         background_tasks: BackgroundTasks,
+        proof_type: ProofType = ProofType.AFTER,
     ) -> dict:
         """
-        Validates the token, saves the uploaded file, creates a proof record,
-        and triggers dual notifications.
+        Validates the token, saves the uploaded file, creates a proof record.
+        Only triggers notifications and invalidates token when proof_type is AFTER.
         """
         # Validate token and get order
         order = self.token_service.get_order_by_token(token)
         if not order:
             raise ValueError("Invalid or expired token.")
 
-        # Check if proof already exists for this order
-        existing_proof = self.db.query(Proof).filter(Proof.order_id == order.id).first()
+        # Check if same proof_type already exists for this order
+        existing_proof = (
+            self.db.query(Proof)
+            .filter(Proof.order_id == order.id, Proof.proof_type == proof_type)
+            .first()
+        )
         if existing_proof:
-            raise ValueError("Proof already uploaded for this order.")
+            raise ValueError(f"{proof_type.value} proof already uploaded for this order.")
 
         # Generate unique & safe filename (avoid user-supplied names)
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
@@ -57,7 +62,7 @@ class ProofService:
                 ext = ".png"
             else:
                 ext = ".jpg"
-        safe_filename = f"{order.id}_{timestamp}{ext}"
+        safe_filename = f"{order.id}_{proof_type.value}_{timestamp}{ext}"
         file_path = os.path.join(self.upload_dir, safe_filename)
 
         # Save file
@@ -72,35 +77,44 @@ class ProofService:
         # Create proof record
         proof = Proof(
             order_id=order.id,
+            proof_type=proof_type,
             file_path=safe_filename,  # Store relative path
             file_size=len(contents),
             mime_type=file.content_type,
         )
         self.db.add(proof)
 
-        # Update order status
-        order.status = OrderStatus.PROOF_UPLOADED
-
-        # Invalidate token (one-time use)
-        self.token_service.invalidate_token_after_proof(token)
+        # Only update status, invalidate token, and send notifications for AFTER proof
+        if proof_type == ProofType.AFTER:
+            order.status = OrderStatus.PROOF_UPLOADED
+            self.token_service.invalidate_token_after_proof(token)
 
         self.db.commit()
         self.db.refresh(proof)
 
-        logger.info(f"Created proof {proof.id} for order {order.id}")
+        logger.info(f"Created {proof_type.value} proof {proof.id} for order {order.id}")
 
-        # Trigger notifications (non-blocking)
-        await self.notification_service.send_dual_notification(
-            order=order,
-            background_tasks=background_tasks,
-        )
+        # Trigger notifications only for AFTER proof (non-blocking)
+        if proof_type == ProofType.AFTER:
+            await self.notification_service.send_dual_notification(
+                order=order,
+                background_tasks=background_tasks,
+            )
 
         return {
             "status": "success",
             "proof_id": proof.id,
-            "message": "Proof of delivery uploaded successfully.",
+            "proof_type": proof_type,
+            "message": f"{proof_type.value} proof uploaded successfully.",
         }
 
-    def get_proof_by_order_id(self, order_id: int) -> Optional[Proof]:
-        """Get proof for a specific order."""
-        return self.db.query(Proof).filter(Proof.order_id == order_id).first()
+    def get_proofs_by_order_id(self, order_id: int) -> List[Proof]:
+        """Get all proofs for a specific order."""
+        return self.db.query(Proof).filter(Proof.order_id == order_id).all()
+
+    def get_proof_by_order_id(self, order_id: int, proof_type: Optional[ProofType] = None) -> Optional[Proof]:
+        """Get proof for a specific order, optionally filtered by type."""
+        query = self.db.query(Proof).filter(Proof.order_id == order_id)
+        if proof_type:
+            query = query.filter(Proof.proof_type == proof_type)
+        return query.first()

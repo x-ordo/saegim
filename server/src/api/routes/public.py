@@ -10,7 +10,8 @@ from src.services.token_service import TokenService
 from src.services.proof_service import ProofService
 from src.services.short_link_service import ShortLinkService
 from src.services.short_link_service import ShortLinkService
-from src.schemas import PublicOrderSummary, ProofUploadResponse, PublicProofResponse
+from src.schemas import PublicOrderSummary, ProofUploadResponse, PublicProofResponse, ProofItem
+from src.models import ProofType
 from src.utils.rate_limiter import limiter, get_rate_limit
 from src.core.config import settings
 
@@ -41,12 +42,19 @@ async def get_order_by_token(
             detail="TOKEN_INVALID",
         )
 
+    # Check proof status
+    has_before = any(p.proof_type == ProofType.BEFORE for p in order.proofs)
+    has_after = any(p.proof_type == ProofType.AFTER for p in order.proofs)
+
     return PublicOrderSummary(
         order_number=order.order_number,
         context=order.context,
         organization_name=(order.organization.brand_name or order.organization.name),
         organization_logo=(order.organization.brand_logo_url or order.organization.logo_url),
         hide_saegim=bool(order.organization.hide_saegim),
+        asset_meta=order.asset_meta,
+        has_before_proof=has_before,
+        has_after_proof=has_after,
     )
 
 
@@ -57,11 +65,12 @@ async def upload_proof(
     token: str,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    proof_type: ProofType = ProofType.AFTER,
     db: Session = Depends(get_db),
 ):
     """
-    Upload proof of delivery image.
-    Triggers dual notifications (sender + recipient) on success.
+    Upload proof image with type (BEFORE, AFTER, RECEIPT, DAMAGE, OTHER).
+    Triggers dual notifications only for AFTER type.
     Rate limited to prevent abuse.
     """
     # Validate file type
@@ -91,11 +100,13 @@ async def upload_proof(
             token=token,
             file=file,
             background_tasks=background_tasks,
+            proof_type=proof_type,
         )
-        logger.info(f"Proof uploaded successfully for token {token[:8]}...")
+        logger.info(f"{proof_type.value} proof uploaded successfully for token {token[:8]}...")
         return ProofUploadResponse(
             status=result["status"],
             proof_id=result["proof_id"],
+            proof_type=result["proof_type"],
             message=result["message"],
         )
     except ValueError as e:
@@ -144,8 +155,12 @@ async def get_proof(
         context=proof_data["context"],
         organization_name=proof_data["organization_name"],
         organization_logo=proof_data["organization_logo"],
-        proof_url=proof_data["proof_url"],
-        uploaded_at=proof_data["uploaded_at"],
+        hide_saegim=proof_data.get("hide_saegim", False),
+        asset_meta=proof_data.get("asset_meta"),
+        proofs=[ProofItem(**p) for p in proof_data["proofs"]],
+        # Backward compatibility
+        proof_url=proof_data.get("proof_url"),
+        uploaded_at=proof_data.get("uploaded_at"),
     )
 
 

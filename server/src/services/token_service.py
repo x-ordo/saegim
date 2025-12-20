@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
 
-from src.models import QRToken, Order, Proof
+from src.models import QRToken, Order, Proof, ProofType
 from src.core.config import settings
 
 
@@ -49,16 +49,34 @@ class TokenService:
         return None
 
     def get_proof_by_token(self, token: str) -> Optional[dict]:
-        """Get proof data by token for public proof page."""
+        """Get proof data by token for public proof page. Returns multiple proofs."""
         qr_token = self.get_token(token)
         if not qr_token:
             return None
 
         order = qr_token.order
-        proof = order.proof
+        proofs = order.proofs  # Now a list
 
-        if not proof:
+        if not proofs:
             return None
+
+        # Build proof items list
+        proof_items = []
+        for proof in proofs:
+            proof_items.append({
+                "id": proof.id,
+                "proof_type": proof.proof_type.value,
+                "proof_url": f"/uploads/{proof.file_path}",
+                "uploaded_at": proof.uploaded_at,
+            })
+
+        # Sort: BEFORE first, then AFTER, then others
+        type_order = {"BEFORE": 0, "AFTER": 1, "RECEIPT": 2, "DAMAGE": 3, "OTHER": 4}
+        proof_items.sort(key=lambda p: type_order.get(p["proof_type"], 5))
+
+        # Backward compatibility: first AFTER proof or first proof
+        after_proof = next((p for p in proof_items if p["proof_type"] == "AFTER"), None)
+        primary_proof = after_proof or proof_items[0]
 
         return {
             "order_number": order.order_number,
@@ -66,8 +84,11 @@ class TokenService:
             "organization_name": (order.organization.brand_name or order.organization.name),
             "organization_logo": (order.organization.brand_logo_url or order.organization.logo_url),
             "hide_saegim": bool(order.organization.hide_saegim),
-            "proof_url": f"/uploads/{proof.file_path}",
-            "uploaded_at": proof.uploaded_at,
+            "asset_meta": order.asset_meta,
+            "proofs": proof_items,
+            # Backward compatibility
+            "proof_url": primary_proof["proof_url"],
+            "uploaded_at": primary_proof["uploaded_at"],
         }
 
     def revoke_token(self, token: str) -> bool:

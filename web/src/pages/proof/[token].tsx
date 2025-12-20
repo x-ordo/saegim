@@ -103,9 +103,15 @@ export default function ProofPage() {
                   style={{ maxWidth: 140, maxHeight: 48, objectFit: 'contain', marginBottom: 10 }}
                 />
               )}
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>사진 1장 업로드</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>수선 증빙 업로드</div>
               <div className="muted">주문번호: <b>{order.order_number}</b> {order.context ? `· ${order.context}` : ''}</div>
               <div className="muted">업체: {order.organization_name}</div>
+              {order.asset_meta && (
+                <div className="muted" style={{ marginTop: 4 }}>
+                  {order.asset_meta.brand && <span>{order.asset_meta.brand}</span>}
+                  {order.asset_meta.model && <span> {order.asset_meta.model}</span>}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -113,9 +119,13 @@ export default function ProofPage() {
         {!loading && order && (
           <div className="card">
             <div className="muted" style={{ marginBottom: 10 }}>
-              안내: QR 스캔 → 촬영 → 업로드. 업로드 완료 후 발주자/수령자에게 링크가 전달됩니다.
+              안내: 수선 전/후 사진을 업로드해주세요. 업로드 완료 후 고객에게 확인 링크가 전달됩니다.
             </div>
-            <UploadForm token={t} />
+            <UploadForm
+              token={t}
+              hasBeforeProof={order.has_before_proof}
+              hasAfterProof={order.has_after_proof}
+            />
           </div>
         )}
       </div>

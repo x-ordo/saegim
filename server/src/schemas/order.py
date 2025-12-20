@@ -5,11 +5,25 @@ from datetime import datetime
 from src.models.order import OrderStatus
 
 
+class AssetMeta(BaseModel):
+    """Schema for asset metadata (luxury repair context)."""
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    serial: Optional[str] = None
+    material: Optional[str] = None
+    color: Optional[str] = None
+    repair_type: Optional[str] = None
+    repair_note: Optional[str] = None
+    purchase_date: Optional[str] = None
+    estimated_value: Optional[int] = None
+
+
 class OrderCreate(BaseModel):
     """Schema for creating a new order."""
     organization_id: Optional[int] = None
     order_number: str
     context: Optional[str] = None
+    asset_meta: Optional[AssetMeta] = None
     sender_name: str
     sender_phone: str  # E.164 format, will be encrypted
     recipient_name: Optional[str] = None
@@ -54,6 +68,10 @@ class PublicOrderSummary(BaseModel):
     context: Optional[str] = None
     organization_name: str
     organization_logo: Optional[str] = None
+    hide_saegim: bool = False
+    asset_meta: Optional[dict] = None
+    has_before_proof: bool = False
+    has_after_proof: bool = False
 
 
 class OrderOut(OrderResponse):
