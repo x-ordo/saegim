@@ -2,6 +2,7 @@
 .DS_Store
 *.swp
 *.swo
+Thumbs.db
 
 # Python
 __pycache__/
@@ -23,6 +24,8 @@ htmlcov/
 .tox/
 .nox/
 pip-log.txt
+.pdm.toml
+pyrightconfig.json
 
 # Alembic
 alembic/versions/__pycache__/
@@ -36,6 +39,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.yarn/
 
 # Next.js
 .next/
@@ -43,17 +47,28 @@ out/
 web/.next/
 web/node_modules/
 web/out/
+.vercel/
 
-# Environment
+# Environment & Secrets
 .env
 .env.*
 !.env.example
 !.env.*.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+secrets/
+*.pem
+*.key
+*.crt
+credentials.json
 
 # IDE
 .vscode/
 .idea/
 *.sublime-*
+*.code-workspace
 
 # Database
 *.db
@@ -63,16 +78,34 @@ web/out/
 # Docker
 .docker/
 
-# Local uploads (v1)
+# Local uploads & data (v1)
 uploads/
 server/uploads/
+data/uploads/
+data/pg/
 
 # Testing
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
 
-# Misc
+# Build artifacts
 *.bak
 *.tmp
 *.temp
-data/pg/
+*.cache
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# Claude Code (local settings)
+.claude/settings.local.json
+
+# SpecKit generated (optional - uncomment if needed)
+# .specify/
+
+# Misc
+.turbo/

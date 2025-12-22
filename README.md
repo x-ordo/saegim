@@ -1,64 +1,152 @@
-# 새김 (Saegim)
+# ProofLink (새김)
 
-**배송/화환/행사 현장 사진 인증 + 자동 통지**를 위한 B2B SaaS MVP.
+배송/화환/수리 현장 사진 인증 + 자동 알림을 위한 B2B SaaS.
 
-- 업체(화환/배송)가 주문을 등록 → 토큰(=QR) 발급
-- 기사/현장 직원이 링크(또는 QR)로 접속 → 사진 업로드(1회)
-- 구매자/수령자에게 카톡/문자(현재는 mock 기록)로 사진 인증 링크 전송
-- 관리자(업체)용 웹 백오피스 제공
+## Overview
 
-## Quick Start (Docker)
+- 업체가 주문 등록 → QR 토큰 발급
+- 현장 직원이 링크/QR로 접속 → 사진 업로드 (Before/After)
+- 고객에게 카카오 알림톡/SMS로 사진 인증 링크 전송
+- 관리자용 웹 대시보드 제공
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI, PostgreSQL, SQLAlchemy |
+| Frontend | Next.js 14, TypeScript, Tailwind CSS, Shadcn UI |
+| Auth | Clerk (JWT/JWKS) |
+| Messaging | Kakao AlimTalk, NAVER SENS SMS |
+
+## Quick Start
+
+### Docker (권장)
 
 ```bash
-cp .env.example .env
+# 환경 설정
+cp server/.env.example server/.env
+
+# 컨테이너 실행
 docker compose up --build
-```
 
-### 1) DB 마이그레이션
-
-```bash
+# DB 마이그레이션
 docker compose exec api alembic upgrade head
+
+# 테스트 데이터 생성
+docker compose exec api python -m scripts.seed_test_data
 ```
 
-### 2) 테스트 데이터 시드
+### 로컬 개발
 
 ```bash
-docker compose exec api python -m scripts.seed_test_data
+# Backend
+cd server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn src.api.main:app --reload
+
+# Frontend
+cd web
+npm install
+npm run dev
 ```
 
 ## URLs
 
-- Web (Public + Backoffice): http://localhost:3000
-- API Swagger: http://localhost:8000/docs
-- Public API base: http://localhost:8000/api/v1/public
-- Admin API base: http://localhost:8000/api/v1/admin
+| Service | URL |
+|---------|-----|
+| Web | http://localhost:3000 |
+| API Docs | http://localhost:8000/docs |
+| Public API | http://localhost:8000/api/v1/public |
+| Admin API | http://localhost:8000/api/v1/admin |
 
-## Backoffice (업체용)
+## Project Structure
 
-- `/app/orders` : 주문 목록
-- `/app/orders/new` : 주문 생성
-- `/app/orders/{id}` : 토큰 발급/링크 확인/재발송(큐잉)
+```
+saegim/
+├── server/             # FastAPI Backend
+│   ├── src/
+│   │   ├── api/        # Routes, auth
+│   │   ├── core/       # Config, database
+│   │   ├── models/     # SQLAlchemy models
+│   │   ├── schemas/    # Pydantic schemas
+│   │   ├── services/   # Business logic
+│   │   └── integrations/  # External APIs
+│   └── alembic/        # DB migrations
+├── web/                # Next.js Frontend
+│   ├── src/
+│   │   ├── pages/      # Page components
+│   │   ├── components/ # UI components
+│   │   └── services/   # API clients
+│   └── middleware.ts   # Auth middleware
+├── docs/               # Documentation
+└── docker-compose.yml
+```
 
-## Auth (Backoffice)
+## Key Features
 
-- 기본: **외부 로그인(Clerk/Auth0 등)** → Web은 세션/보호 라우팅, API는 **Bearer JWT(JWKS 검증)** 방식.
-- fallback(개발/비상용): `X-Admin-Key` (서버 `.env`의 `ADMIN_API_KEY`, `ALLOW_ADMIN_API_KEY=true`)
+### Public Flow
+- `/proof/{token}` - 사진 업로드 페이지
+- `/p/{token}` - 사진 확인 페이지 (Before/After 슬라이더)
+- `/s/{code}` - 단축 URL 리다이렉트
 
-### Clerk 권장 흐름
+### Admin Dashboard
+- `/app/orders` - 주문 목록
+- `/app/orders/new` - 주문 생성
+- `/app/orders/{id}` - 주문 상세 (토큰 발급, 알림 재발송)
+- `/app/settings/branding` - 화이트라벨 설정
+- `/app/settings/messaging` - 메시지 템플릿 설정
+- `/app/labels` - 라벨 일괄 출력
 
-1) Clerk 대시보드에서 앱 생성  
-2) `.env.local`에 `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` 세팅  
-3) (선택) JWT Template 생성 후 Web의 `NEXT_PUBLIC_AUTH_TOKEN_TEMPLATE`에 template 이름 지정  
-4) Server `.env`에 `AUTH_JWKS_URL`, `AUTH_ISSUER`(필요 시 `AUTH_AUDIENCE`) 세팅
+## Authentication
 
-> **중요**: 화면 보호(Next middleware)만 믿지 말고, **API 서버에서 토큰 검증을 반드시 유지**하세요.
+### Clerk 설정
 
-## Public Flow
+1. [Clerk Dashboard](https://dashboard.clerk.com)에서 앱 생성
+2. 환경 변수 설정:
 
-- 업로드 링크(기사/현장): `/proof/{token}`
-- 확인 링크(구매자/수령자): `/p/{token}`
+```bash
+# web/.env.local
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
 
-## Notes
+# server/.env
+AUTH_JWKS_URL=https://{your-clerk-domain}/.well-known/jwks.json
+AUTH_ISSUER=https://{your-clerk-domain}
+```
 
-- 기본 메시징은 `MESSAGING_PROVIDER=mock`로 DB `notifications` 테이블에만 기록됩니다.
-- `LOCAL_UPLOAD_DIR=/data/uploads`에 업로드되며, API에서 `/uploads/...`로 서빙합니다.
+### 개발용 API Key (fallback)
+
+```bash
+# server/.env
+ALLOW_ADMIN_API_KEY=true
+ADMIN_API_KEY=your-dev-key
+```
+
+요청 헤더: `X-Admin-Key: your-dev-key`
+
+## Environment Variables
+
+### Backend (server/.env)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL 연결 문자열 | Yes |
+| `ENCRYPTION_KEY` | 전화번호 암호화 키 (32자) | Yes |
+| `AUTH_JWKS_URL` | Clerk JWKS URL | Yes |
+| `MESSAGING_PROVIDER` | `mock`, `kakao_i_connect`, `sens_sms` | No (default: mock) |
+
+### Frontend (web/.env.local)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_API_BASE_URL` | API 서버 URL | Yes |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk 공개 키 | Yes |
+| `CLERK_SECRET_KEY` | Clerk 비밀 키 | Yes |
+
+## License
+
+Proprietary License - All rights reserved.
+
+라이선스 문의: parkdavid31@gmail.com
