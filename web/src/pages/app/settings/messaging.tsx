@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { getOrgSettings, updateOrgSettings, Organization } from '../../../services/adminApi';
@@ -116,12 +117,12 @@ export default function MessagingSettingsPage() {
     <AdminLayout title="설정 - 메시지">
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <a className="btn ghost" href="/app/settings/branding">
+          <Link className="btn ghost" href="/app/settings/branding">
             브랜딩
-          </a>
-          <a className="btn secondary" href="/app/settings/messaging">
+          </Link>
+          <Link className="btn secondary" href="/app/settings/messaging">
             메시지
-          </a>
+          </Link>
         </div>
 
         {loading ? (
