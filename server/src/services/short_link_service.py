@@ -1,5 +1,5 @@
 import secrets
-from typing import Optional, Tuple
+from typing import Optional
 
 from sqlalchemy.orm import Session
 

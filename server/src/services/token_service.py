@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
 
-from src.models import QRToken, Order, Proof, ProofType
+from src.models import QRToken, Order
 from src.core.config import settings
 
 

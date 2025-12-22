@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
-from src.models import Proof, ProofType, Order, OrderStatus
+from src.models import Proof, ProofType, OrderStatus
 from src.core.config import settings
 from src.services.token_service import TokenService
 from src.services.notification_service import NotificationService
