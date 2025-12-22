@@ -27,6 +27,7 @@ Build v1 MVP of ProofLink: QR 증빙(사진) + 자동 메시지 + 공개 링크 
 ## Copyright & Attribution
 - **본 프로젝트는 비즈니스 저작권 (Proprietary License) 적용**
 - 무단 복제, 배포, 수정 금지
+- 라이선스 문의: parkdavid31@gmail.com
 - 커밋 메시지에 "Generated with Claude Code" 또는 "Co-Authored-By: Claude" 포함 금지
 - AI 생성 코드임을 명시적으로 표기하지 않음
 - 외부 라이브러리 사용 시 라이선스 호환성 확인 (상용 프로젝트에 적합한지 검토)
