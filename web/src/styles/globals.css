@@ -2,170 +2,444 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   DESIGN TOKENS - Saegim Design System
+
+   구조:
+   1. Primitive Tokens (원시 값) - 색상 팔레트, 폰트 크기 등
+   2. Semantic Tokens (의미 기반) - background, foreground, success 등
+   3. Component Tokens (컴포넌트 전용) - card, button, input 등
+   ============================================================================= */
+
 @layer base {
   :root {
-    --background: 40 20% 96%;
-    --foreground: 0 0% 7%;
+    /* =========================================================================
+       PRIMITIVE TOKENS - 원시 색상 팔레트
+
+       Neutral: 무채색 계열 (회색)
+       Brand: 브랜드 색상 (향후 명품 피벗 시 쉽게 변경 가능)
+       ========================================================================= */
+
+    /* Neutral Scale (Warm Gray - 따뜻한 회색) */
+    --neutral-50: 40 20% 98%;
+    --neutral-100: 40 15% 96%;
+    --neutral-200: 40 10% 92%;
+    --neutral-300: 40 8% 85%;
+    --neutral-400: 40 5% 65%;
+    --neutral-500: 40 4% 46%;
+    --neutral-600: 40 5% 34%;
+    --neutral-700: 40 6% 24%;
+    --neutral-800: 40 8% 14%;
+    --neutral-900: 40 10% 8%;
+    --neutral-950: 40 12% 4%;
+
+    /* Brand Colors - Saegim (현재: 미니멀 블랙) */
+    --brand-50: 40 20% 97%;
+    --brand-100: 40 15% 93%;
+    --brand-200: 40 10% 85%;
+    --brand-500: 0 0% 25%;
+    --brand-600: 0 0% 15%;
+    --brand-700: 0 0% 9%;
+    --brand-900: 0 0% 4%;
+
+    /* Status Colors */
+    --green-50: 142 76% 95%;
+    --green-100: 141 84% 90%;
+    --green-500: 142 71% 35%;
+    --green-600: 142 76% 26%;
+    --green-700: 142 72% 20%;
+
+    --red-50: 0 86% 97%;
+    --red-100: 0 93% 94%;
+    --red-500: 0 72% 50%;
+    --red-600: 0 72% 45%;
+    --red-700: 0 74% 38%;
+
+    --amber-50: 48 100% 96%;
+    --amber-100: 48 96% 89%;
+    --amber-500: 38 92% 50%;
+    --amber-600: 32 95% 44%;
+    --amber-700: 26 90% 37%;
+
+    --blue-50: 214 100% 97%;
+    --blue-100: 214 95% 93%;
+    --blue-500: 217 91% 55%;
+    --blue-600: 221 83% 48%;
+    --blue-700: 224 76% 42%;
+
+    /* =========================================================================
+       SEMANTIC TOKENS - Shadcn UI 호환
+       ========================================================================= */
+
+    /* Base */
+    --background: var(--neutral-100);
+    --foreground: var(--neutral-900);
+
+    /* Card & Popover */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: var(--neutral-900);
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
-    --primary: 0 0% 7%;
+    --popover-foreground: var(--neutral-900);
+
+    /* Primary (CTA 버튼, 주요 액션) */
+    --primary: var(--brand-700);
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 10% 94%;
-    --secondary-foreground: 0 0% 7%;
-    --muted: 40 10% 94%;
-    --muted-foreground: 0 0% 42%;
-    --accent: 40 10% 94%;
-    --accent-foreground: 0 0% 7%;
-    --destructive: 0 72% 45%;
+
+    /* Secondary (보조 버튼) */
+    --secondary: var(--neutral-200);
+    --secondary-foreground: var(--neutral-900);
+
+    /* Muted (비활성, 힌트 텍스트) */
+    --muted: var(--neutral-200);
+    --muted-foreground: var(--neutral-500);
+
+    /* Accent (호버, 선택 상태) */
+    --accent: var(--neutral-200);
+    --accent-foreground: var(--neutral-900);
+
+    /* Destructive (삭제, 에러) */
+    --destructive: var(--red-600);
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 7%;
+
+    /* Border & Input */
+    --border: var(--neutral-300);
+    --input: var(--neutral-300);
+    --ring: var(--brand-700);
+
+    /* =========================================================================
+       STATUS SEMANTIC TOKENS - 상태 표시용
+       ========================================================================= */
+
+    /* Success (완료, 성공) */
+    --success: var(--green-600);
+    --success-foreground: 0 0% 100%;
+    --success-bg: var(--green-50);
+    --success-border: var(--green-200);
+
+    /* Warning (경고, 주의) */
+    --warning: var(--amber-600);
+    --warning-foreground: 0 0% 100%;
+    --warning-bg: var(--amber-50);
+    --warning-border: 48 60% 80%;
+
+    /* Info (정보) */
+    --info: var(--blue-600);
+    --info-foreground: 0 0% 100%;
+    --info-bg: var(--blue-50);
+    --info-border: 214 70% 85%;
+
+    /* =========================================================================
+       COMPONENT TOKENS
+       ========================================================================= */
+
+    /* Border Radius */
     --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Spacing Scale (기준: 4px) */
+    --space-1: 0.25rem;   /* 4px */
+    --space-2: 0.5rem;    /* 8px */
+    --space-3: 0.75rem;   /* 12px */
+    --space-4: 1rem;      /* 16px */
+    --space-5: 1.25rem;   /* 20px */
+    --space-6: 1.5rem;    /* 24px */
+    --space-8: 2rem;      /* 32px */
+    --space-10: 2.5rem;   /* 40px */
+    --space-12: 3rem;     /* 48px */
+    --space-16: 4rem;     /* 64px */
+
+    /* Typography Scale */
+    --text-xs: 0.75rem;    /* 12px */
+    --text-sm: 0.875rem;   /* 14px */
+    --text-base: 1rem;     /* 16px */
+    --text-lg: 1.125rem;   /* 18px */
+    --text-xl: 1.25rem;    /* 20px */
+    --text-2xl: 1.5rem;    /* 24px */
+    --text-3xl: 1.875rem;  /* 30px */
+    --text-4xl: 2.25rem;   /* 36px */
+
+    /* Line Heights */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+
+    /* Font Weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+
+    /* Touch Targets (모바일 최적화) */
+    --touch-target: 48px;
+    --touch-target-sm: 44px;
+
+    /* Z-Index Scale */
+    --z-dropdown: 50;
+    --z-sticky: 100;
+    --z-modal: 200;
+    --z-popover: 300;
+    --z-tooltip: 400;
+    --z-toast: 500;
+
+    /* Transitions */
+    --duration-fast: 150ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
   }
 
+  /* =========================================================================
+     DARK MODE
+     ========================================================================= */
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 7%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 0% 83%;
+    --background: var(--neutral-950);
+    --foreground: var(--neutral-100);
+
+    --card: var(--neutral-900);
+    --card-foreground: var(--neutral-100);
+    --popover: var(--neutral-900);
+    --popover-foreground: var(--neutral-100);
+
+    --primary: var(--neutral-100);
+    --primary-foreground: var(--neutral-900);
+
+    --secondary: var(--neutral-800);
+    --secondary-foreground: var(--neutral-100);
+
+    --muted: var(--neutral-800);
+    --muted-foreground: var(--neutral-400);
+
+    --accent: var(--neutral-800);
+    --accent-foreground: var(--neutral-100);
+
+    --destructive: var(--red-500);
+    --destructive-foreground: var(--neutral-100);
+
+    --border: var(--neutral-800);
+    --input: var(--neutral-800);
+    --ring: var(--neutral-300);
+
+    /* Status - Dark */
+    --success-bg: var(--green-700);
+    --success-border: var(--green-600);
+    --warning-bg: var(--amber-700);
+    --warning-border: var(--amber-600);
+    --info-bg: var(--blue-700);
+    --info-border: var(--blue-600);
+
+    /* Shadows - Dark (더 강한 그림자) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
   }
 }
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
 
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', Roboto, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: var(--leading-normal);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
+
+  /* Focus Ring Style */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
-/* Legacy styles for backward compatibility */
-:root {
-  --bg: #f6f4f0;
-  --card-legacy: #ffffff;
-  --text: #111111;
-  --muted-legacy: #6b6b6b;
-  --line: rgba(17, 17, 17, 0.10);
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  --radius-legacy: 16px;
-  --radius-sm: 12px;
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+@layer utilities {
+  /* Touch Targets - 모바일 최적화 */
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  .touch-target-sm {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Text Utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Container */
+  .container-sm {
+    @apply mx-auto max-w-2xl px-4;
+  }
+
+  .container-md {
+    @apply mx-auto max-w-4xl px-4;
+  }
+
+  .container-lg {
+    @apply mx-auto max-w-6xl px-4;
+  }
+
+  /* Status Background Utilities */
+  .bg-success-subtle {
+    background-color: hsl(var(--success-bg));
+  }
+
+  .bg-warning-subtle {
+    background-color: hsl(var(--warning-bg));
+  }
+
+  .bg-info-subtle {
+    background-color: hsl(var(--info-bg));
+  }
+
+  /* Gradient Overlays */
+  .gradient-fade-b {
+    background: linear-gradient(to bottom, transparent, hsl(var(--background)));
+  }
+
+  .gradient-fade-t {
+    background: linear-gradient(to top, transparent, hsl(var(--background)));
+  }
 }
 
-* {
-  box-sizing: border-box;
+/* =============================================================================
+   COMPONENT CLASSES
+   ============================================================================= */
+
+@layer components {
+  /* Status Cards */
+  .status-success {
+    @apply border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200;
+  }
+
+  .status-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200;
+  }
+
+  .status-error {
+    @apply border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200;
+  }
+
+  .status-info {
+    @apply border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply rounded-lg border bg-card p-4;
+  }
+
+  .kpi-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  .kpi-label {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+
+  /* Data Table */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+
+  .data-table th {
+    @apply border-b bg-muted/50 px-3 py-2 text-left text-sm font-medium text-muted-foreground;
+  }
+
+  .data-table td {
+    @apply border-b px-3 py-2.5 text-sm;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+
+  /* Page Header */
+  .page-header {
+    @apply mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  .page-description {
+    @apply mt-1 text-muted-foreground;
+  }
 }
 
-html,
-body {
-  padding: 0;
-  margin: 0;
-}
+/* =============================================================================
+   LEGACY SUPPORT - 점진적 마이그레이션용 (향후 제거 예정)
+   ============================================================================= */
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-a {
-  color: inherit;
-}
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-}
-
-/* Legacy layout classes */
+/* Legacy Layout */
 .page {
   min-height: 100vh;
 }
 
-.container:not(.shadcn) {
+.container:not([class*="container-"]) {
   max-width: 980px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: var(--space-6) var(--space-4);
 }
 
 .container.sm {
   max-width: 680px;
 }
 
-.card:not(.shadcn) {
-  background: var(--card-legacy);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-legacy);
+/* Legacy Card */
+.card:not([class*="rounded"]) {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: var(--space-4);
 }
 
 .card.flat {
   box-shadow: none;
 }
 
-.topbar {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.brand {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-}
-
-.brand .name {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.brand .tag {
-  font-size: 13px;
-  color: var(--muted-legacy);
-}
-
-.nav {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.nav a {
-  text-decoration: none;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.nav a:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
-
+/* Legacy Flex Utilities */
 .row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -173,19 +447,19 @@ code {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .grid2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
 }
 
 .grid3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
 }
 
 @media (max-width: 760px) {
@@ -195,134 +469,200 @@ code {
   }
 }
 
-.label:not(.shadcn) {
-  font-size: 12px;
-  color: var(--muted-legacy);
-  margin-bottom: 6px;
+/* Legacy Form Elements */
+.label:not([class*="text-"]) {
+  font-size: var(--text-xs);
+  color: hsl(var(--muted-foreground));
+  margin-bottom: var(--space-2);
 }
 
-.input:not(.shadcn),
-.select:not(.shadcn),
-.textarea:not(.shadcn) {
+.input:not([class*="rounded"]),
+.select:not([class*="rounded"]),
+.textarea:not([class*="rounded"]) {
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  background: hsl(var(--card));
+  font-size: var(--text-sm);
 }
 
-.textarea:not(.shadcn) {
+.textarea:not([class*="rounded"]) {
   min-height: 90px;
   resize: vertical;
 }
 
-.btn:not(.shadcn) {
-  border: 1px solid #111;
-  background: #111;
-  color: #fff;
-  border-radius: 12px;
-  padding: 10px 14px;
+/* Legacy Buttons */
+.btn:not([class*="rounded"]) {
+  border: 1px solid hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: opacity var(--duration-fast) var(--ease-default);
 }
 
-.btn:not(.shadcn):disabled {
+.btn:not([class*="rounded"]):disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.btn.secondary:not(.shadcn) {
-  background: #fff;
-  color: #111;
-  border-color: var(--line);
+.btn.secondary:not([class*="rounded"]) {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
 }
 
-.btn.ghost:not(.shadcn) {
+.btn.ghost:not([class*="rounded"]) {
   background: transparent;
-  color: #111;
+  color: hsl(var(--foreground));
   border-color: transparent;
   text-decoration: underline;
 }
 
-.muted:not(.shadcn) {
-  color: var(--muted-legacy);
-  font-size: 13px;
+/* Legacy Status Messages */
+.muted:not([class*="text-"]) {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--text-sm);
 }
 
 .danger {
-  color: #b42318;
-  background: rgba(180, 35, 24, 0.06);
-  border: 1px solid rgba(180, 35, 24, 0.18);
-  border-radius: 12px;
-  padding: 10px 12px;
+  color: hsl(var(--destructive));
+  background: hsl(var(--red-50));
+  border: 1px solid hsl(var(--red-100));
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
 }
 
 .ok,
 .success {
-  color: #027a48;
-  background: rgba(2, 122, 72, 0.06);
-  border: 1px solid rgba(2, 122, 72, 0.18);
-  border-radius: 12px;
-  padding: 10px 12px;
+  color: hsl(var(--success));
+  background: hsl(var(--success-bg));
+  border: 1px solid hsl(var(--success-border));
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
 }
 
-.badge:not(.shadcn) {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font-size: 12px;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.table:not(.shadcn) {
+/* Legacy Table */
+.table:not([class*="data-"]) {
   width: 100%;
   border-collapse: collapse;
 }
 
-.table:not(.shadcn) th,
-.table:not(.shadcn) td {
-  border-bottom: 1px solid var(--line);
-  padding: 10px 8px;
-  font-size: 14px;
+.table:not([class*="data-"]) th,
+.table:not([class*="data-"]) td {
+  border-bottom: 1px solid hsl(var(--border));
+  padding: var(--space-2);
+  font-size: var(--text-sm);
   text-align: left;
 }
 
+/* Legacy Navigation */
+.topbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.brand {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.brand .name {
+  font-weight: var(--font-bold);
+  letter-spacing: -0.02em;
+}
+
+.brand .tag {
+  font-size: var(--text-sm);
+  color: hsl(var(--muted-foreground));
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  text-decoration: none;
+  padding: var(--space-2);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-full);
+  background: hsl(var(--card) / 0.6);
+  font-size: var(--text-sm);
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.nav a:hover {
+  background: hsl(var(--card) / 0.9);
+}
+
+/* Legacy KPI */
 .kpi {
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.75);
+  padding: var(--space-3);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card) / 0.75);
 }
 
 .kpi .v {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
 }
 
 .kpi .k {
-  font-size: 12px;
-  color: var(--muted-legacy);
-  margin-top: 6px;
+  font-size: var(--text-xs);
+  color: hsl(var(--muted-foreground));
+  margin-top: var(--space-2);
 }
 
-/* Mobile touch targets - 최소 48px 터치 영역 */
-@layer utilities {
-  .touch-target {
-    @apply min-h-[48px] min-w-[48px];
-  }
+/* Legacy Badge */
+.badge:not([class*="rounded"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid hsl(var(--border));
+  font-size: var(--text-xs);
+  background: hsl(var(--card) / 0.7);
 }
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
 
 @media print {
   body {
-    background: #fff;
+    background: #fff !important;
   }
+
   .no-print {
     display: none !important;
   }
+
   .print-area {
     display: block !important;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
   }
 }

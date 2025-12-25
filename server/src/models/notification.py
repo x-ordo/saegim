@@ -8,6 +8,7 @@ from src.core.database import Base
 class NotificationType(str, enum.Enum):
     SENDER = "SENDER"         # To buyer (발주자)
     RECIPIENT = "RECIPIENT"   # To recipient (수령인)
+    REMINDER = "REMINDER"     # Reminder for pending proof upload
 
 
 class NotificationChannel(str, enum.Enum):

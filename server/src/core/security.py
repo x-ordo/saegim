@@ -1,6 +1,8 @@
 import base64
 import hashlib
 import re
+from typing import Optional
+from functools import lru_cache
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -8,13 +10,46 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from .config import settings
 
 
-def _get_fernet() -> Fernet:
-    """Get Fernet instance for AES-256 encryption."""
-    # Derive a proper Fernet key from the encryption key
+# Salt version for key rotation support
+_SALT_VERSION = "v2"
+
+
+def _derive_salt(context: str = "default") -> bytes:
+    """
+    Derive a dynamic salt based on context and encryption key.
+
+    This provides:
+    1. Different salts for different contexts (e.g., "phone", "email")
+    2. Salt derivation from the encryption key itself (no static salt)
+    3. Version support for future key rotation
+
+    Args:
+        context: Context identifier (e.g., "phone", "email", "pii")
+
+    Returns:
+        16-byte salt for PBKDF2
+    """
+    # Combine encryption key + context + version for unique salt per context
+    salt_input = f"{settings.ENCRYPTION_KEY}:{context}:{_SALT_VERSION}"
+    return hashlib.sha256(salt_input.encode()).digest()[:16]
+
+
+@lru_cache(maxsize=8)
+def _get_fernet(context: str = "phone") -> Fernet:
+    """
+    Get Fernet instance for AES-256 encryption with context-based salt.
+
+    Args:
+        context: Encryption context for salt derivation
+
+    Returns:
+        Fernet instance for the given context
+    """
+    salt = _derive_salt(context)
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=b"prooflink_salt_v1",  # Static salt for deterministic encryption
+        salt=salt,
         iterations=100000,
     )
     key = base64.urlsafe_b64encode(kdf.derive(settings.ENCRYPTION_KEY.encode()))
@@ -33,7 +68,7 @@ def encrypt_phone(phone: str) -> str:
     """
     if not phone:
         return ""
-    fernet = _get_fernet()
+    fernet = _get_fernet("phone")
     encrypted = fernet.encrypt(phone.encode())
     return encrypted.decode()
 
@@ -50,7 +85,7 @@ def decrypt_phone(encrypted_phone: str) -> str:
     """
     if not encrypted_phone:
         return ""
-    fernet = _get_fernet()
+    fernet = _get_fernet("phone")
     decrypted = fernet.decrypt(encrypted_phone.encode())
     return decrypted.decode()
 

@@ -11,18 +11,68 @@ from src.core.config import settings
 from src.utils.rate_limiter import limiter
 from src.api.routes import public_router, admin_router
 
+# Sentry integration (must be before app creation)
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.APP_ENV,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
+        integrations=[
+            FastApiIntegration(transaction_style="endpoint"),
+            SqlalchemyIntegration(),
+        ],
+        send_default_pii=False,  # Don't send PII (phone numbers, etc.)
+    )
+
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO if not settings.is_production else logging.WARNING,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _get_cors_origins() -> list[str]:
+    """
+    Get CORS allowed origins based on environment.
+
+    Production: Only explicitly configured origins
+    Development: Include localhost variants
+    """
+    origins = []
+
+    # Always include configured WEB_BASE_URL
+    if settings.WEB_BASE_URL:
+        origins.append(settings.WEB_BASE_URL.rstrip("/"))
+
+    # Development only: include localhost variants
+    if not settings.is_production:
+        dev_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ]
+        for origin in dev_origins:
+            if origin not in origins:
+                origins.append(origin)
+
+    return origins
+
 
 # Create FastAPI app
 app = FastAPI(
     title="Saegim API",
     description="QR-based delivery proof system with dual notifications",
     version="1.0.0",
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
+    openapi_url="/openapi.json" if not settings.is_production else None,
 )
 
 # Add rate limiter
@@ -30,16 +80,17 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
+cors_origins = _get_cors_origins()
+logger.info(f"CORS allowed origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.WEB_BASE_URL,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
+    max_age=600,  # Cache preflight for 10 minutes
 )
 
 # Mount static files for uploaded proofs

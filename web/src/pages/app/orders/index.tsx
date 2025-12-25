@@ -1,8 +1,52 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../../components/AdminLayout';
-import { importOrdersCsv, listOrders, listOrganizations, resendNotify, Order, Organization } from '../../../services/adminApi';
+import { importOrdersCsv, listOrders, listOrganizations, Order, Organization, OrderListResult } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+type DateFilter = 'all' | 'today' | 'week' | 'month' | 'custom';
+
+function formatDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+function getDateRange(filter: DateFilter): { start?: string; end?: string } {
+  const today = new Date();
+
+  switch (filter) {
+    case 'today':
+      return { start: formatDate(today), end: formatDate(today) };
+    case 'week': {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      return { start: formatDate(weekAgo), end: formatDate(today) };
+    }
+    case 'month': {
+      const monthAgo = new Date(today);
+      monthAgo.setDate(monthAgo.getDate() - 29);
+      return { start: formatDate(monthAgo), end: formatDate(today) };
+    }
+    case 'all':
+    default:
+      return {};
+  }
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'PENDING':
+      return { bg: '#fef3c7', color: '#92400e' };
+    case 'TOKEN_ISSUED':
+      return { bg: '#dbeafe', color: '#1e40af' };
+    case 'PROOF_UPLOADED':
+      return { bg: '#d1fae5', color: '#065f46' };
+    case 'NOTIFIED':
+    case 'COMPLETED':
+      return { bg: '#d1fae5', color: '#065f46' };
+    default:
+      return { bg: '#f3f4f6', color: '#374151' };
+  }
+}
 
 export default function OrdersPage() {
   const { isLoaded, isSignedIn, getAdminToken } = useAdminToken();
@@ -12,12 +56,18 @@ export default function OrdersPage() {
   const [orgId, setOrgId] = useState<number | undefined>(undefined);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 50;
+
   const [toast, setToast] = useState<string | null>(null);
-  const [sendingId, setSendingId] = useState<number | null>(null);
 
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
@@ -113,16 +163,26 @@ export default function OrdersPage() {
         setOrgId(g[0].id);
       }
 
-      const o = await listOrders(token, {
+      const { start, end } = getDateRange(dateFilter);
+
+      const result: OrderListResult = await listOrders(token, {
         organization_id: resolvedOrgId,
         q,
         status: status || undefined,
+        start_date: start,
+        end_date: end,
+        page,
+        limit,
       });
-      setOrders(o);
+
+      setOrders(result.items);
+      setTotal(result.total);
+      setTotalPages(result.total_pages);
+
       // prune selection (keep only visible ids)
       setSelected((prev) => {
         const next: Record<number, boolean> = {};
-        for (const ord of o) {
+        for (const ord of result.items) {
           if (prev[ord.id]) next[ord.id] = true;
         }
         return next;
@@ -134,27 +194,31 @@ export default function OrdersPage() {
     }
   };
 
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn, page]);
 
-  const sendNotify = async (orderId: number) => {
-    try {
-      setSendingId(orderId);
-      setError(null);
-      const token = await getAdminToken();
-      await resendNotify(token, orderId);
-      setToast(`알림 발송 요청됨 (#${orderId})`);
-    } catch (err: any) {
-      setToast(err?.message || String(err));
-    } finally {
-      setSendingId(null);
-      window.setTimeout(() => setToast(null), 1600);
-    }
+  const handleSearch = () => {
+    setPage(1);
+    load();
+  };
+
+  const handleFilterChange = (newFilter: DateFilter) => {
+    setDateFilter(newFilter);
+    setPage(1);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setStatus(newStatus);
+    setPage(1);
   };
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, isSignedIn]);
+  }, [dateFilter, status]);
 
   return (
     <AdminLayout title="Orders">
@@ -179,23 +243,37 @@ export default function OrdersPage() {
                   </select>
                 )}
 
-                <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">All status</option>
-                  <option value="PENDING">PENDING</option>
-                  <option value="TOKEN_ISSUED">TOKEN_ISSUED</option>
-                  <option value="PROOF_UPLOADED">PROOF_UPLOADED</option>
+                <select
+                  className="select"
+                  value={dateFilter}
+                  onChange={(e) => handleFilterChange(e.target.value as DateFilter)}
+                >
+                  <option value="all">전체 기간</option>
+                  <option value="today">오늘</option>
+                  <option value="week">최근 7일</option>
+                  <option value="month">최근 30일</option>
+                </select>
+
+                <select className="select" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
+                  <option value="">전체 상태</option>
+                  <option value="PENDING">대기</option>
+                  <option value="TOKEN_ISSUED">토큰 발급</option>
+                  <option value="PROOF_UPLOADED">증빙 완료</option>
                 </select>
 
                 <input
                   className="input"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search (order / sender / recipient)"
-                  style={{ maxWidth: 420 }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="검색 (주문번호 / 발주자 / 수령인)"
+                  style={{ maxWidth: 300 }}
                 />
-                <button className="btn" onClick={load}>Search</button>
-                <Link className="btn secondary" href="/app/orders/new">+ New</Link>
+                <button className="btn" onClick={handleSearch}>검색</button>
+                <Link className="btn secondary" href="/app/orders/new">+ 신규</Link>
+              </div>
 
+              <div className="row" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
                 <button className="btn secondary" onClick={openTodayLabels} title="오늘(서울시간) 주문 전체를 라벨로 출력">
                   오늘 라벨
                 </button>
@@ -216,9 +294,6 @@ export default function OrdersPage() {
                   onChange={onCsvChange}
                 />
               </div>
-              <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-                CSV 컬럼: order_number, context, sender_name, sender_phone, recipient_name, recipient_phone
-              </div>
             </div>
 
             {error && <div className="danger">{error}</div>}
@@ -229,8 +304,8 @@ export default function OrdersPage() {
             {!loading && (
               <div className="card flat" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 900 }}>선택 {selectedIds.length}건</span>
-                  <span className="muted" style={{ fontSize: 12 }}>체크 후 “라벨 출력” (토큰은 자동 발급)</span>
+                  <span style={{ fontWeight: 900 }}>총 {total}건</span>
+                  <span className="muted">| 선택 {selectedIds.length}건</span>
                 </div>
                 <div className="row" style={{ gap: 8 }}>
                   <button className="btn" disabled={selectedIds.length === 0} onClick={() => openLabels(selectedIds)}>라벨 출력</button>
@@ -240,51 +315,111 @@ export default function OrdersPage() {
             )}
 
             {!loading && (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 36 }}>
-                      <input
-                        type="checkbox"
-                        aria-label="select all"
-                        checked={orders.length > 0 && orders.every((o) => selected[o.id])}
-                        onChange={toggleAllVisible}
-                      />
-                    </th>
-                    <th>ID</th>
-                    <th>Order No.</th>
-                    <th>Sender</th>
-                    <th>Recipient</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th className="no-print">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={!!selected[o.id]}
-                          onChange={(e) => setSelected((prev) => ({ ...prev, [o.id]: e.target.checked }))}
-                        />
-                      </td>
-                      <td><Link href={`/app/orders/${o.id}`}>{o.id}</Link></td>
-                      <td>{o.order_number}</td>
-                      <td>{o.sender_name}</td>
-                      <td>{o.recipient_name || '-'}</td>
-                      <td><span className="badge">{o.status}</span></td>
-                      <td>{new Date(o.created_at).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                  {orders.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="muted">No orders.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              <>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 36 }}>
+                          <input
+                            type="checkbox"
+                            aria-label="select all"
+                            checked={orders.length > 0 && orders.every((o) => selected[o.id])}
+                            onChange={toggleAllVisible}
+                          />
+                        </th>
+                        <th>ID</th>
+                        <th>주문번호</th>
+                        <th>발주자</th>
+                        <th>수령인</th>
+                        <th>상태</th>
+                        <th>생성일</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((o) => {
+                        const badge = getStatusBadge(o.status);
+                        return (
+                          <tr key={o.id}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={!!selected[o.id]}
+                                onChange={(e) => setSelected((prev) => ({ ...prev, [o.id]: e.target.checked }))}
+                              />
+                            </td>
+                            <td><Link href={`/app/orders/${o.id}`}>{o.id}</Link></td>
+                            <td>{o.order_number}</td>
+                            <td>{o.sender_name}</td>
+                            <td>{o.recipient_name || '-'}</td>
+                            <td>
+                              <span style={{
+                                fontSize: 12,
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                                background: badge.bg,
+                                color: badge.color,
+                              }}>
+                                {o.status === 'PENDING' ? '대기' :
+                                 o.status === 'TOKEN_ISSUED' ? '토큰발급' :
+                                 o.status === 'PROOF_UPLOADED' ? '증빙완료' : o.status}
+                              </span>
+                            </td>
+                            <td>{new Date(o.created_at).toLocaleString('ko-KR', {
+                              month: 'numeric',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}</td>
+                          </tr>
+                        );
+                      })}
+                      {orders.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 24 }}>
+                            주문이 없습니다.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                  }}>
+                    <span className="muted">
+                      {(page - 1) * limit + 1}–{Math.min(page * limit, total)} / {total}건
+                    </span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className="btn secondary"
+                        style={{ padding: '4px 12px' }}
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                      >
+                        이전
+                      </button>
+                      <span style={{ padding: '4px 12px', display: 'flex', alignItems: 'center' }}>
+                        {page} / {totalPages}
+                      </span>
+                      <button
+                        className="btn secondary"
+                        style={{ padding: '4px 12px' }}
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages}
+                      >
+                        다음
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

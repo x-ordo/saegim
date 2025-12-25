@@ -53,6 +53,14 @@ export interface UploadResponse {
   message: string;
 }
 
+export interface PresignedUploadResponse {
+  upload_url: string;
+  fields: Record<string, string>;
+  file_key: string;
+  expires_in: number;
+  confirm_url: string;
+}
+
 export interface ShortResolveResponse {
   code: string;
   target_url: string;
@@ -81,9 +89,140 @@ export const getOrderByToken = async (token: string): Promise<OrderSummary | nul
 };
 
 /**
- * Upload proof with type (BEFORE, AFTER, RECEIPT, DAMAGE, OTHER)
+ * Get presigned URL for S3 upload
+ */
+export const getPresignedUpload = async (
+  token: string,
+  filename: string,
+  contentType: string,
+  proofType: ProofType = 'AFTER'
+): Promise<PresignedUploadResponse> => {
+  const response = await fetch(`${API_BASE_URL}/public/proof/${token}/presign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename,
+      content_type: contentType,
+      proof_type: proofType,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw new Error('RATE_LIMITED');
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to get upload URL' }));
+    throw new Error(errorData.detail || 'Failed to get presigned URL');
+  }
+
+  return response.json();
+};
+
+/**
+ * Upload file directly to presigned URL (S3)
+ */
+export const uploadToPresigned = async (
+  presigned: PresignedUploadResponse,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<void> => {
+  const formData = new FormData();
+
+  // Add all presigned fields first
+  Object.entries(presigned.fields).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  // Add file last
+  formData.append('file', file);
+
+  // Use XMLHttpRequest for progress tracking
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('Network error during upload'));
+    });
+
+    xhr.open('POST', presigned.upload_url);
+    xhr.send(formData);
+  });
+};
+
+/**
+ * Confirm upload completion
+ */
+export const confirmUpload = async (
+  token: string,
+  fileKey: string,
+  proofType: ProofType = 'AFTER'
+): Promise<UploadResponse> => {
+  const response = await fetch(`${API_BASE_URL}/public/proof/${token}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      file_key: fileKey,
+      proof_type: proofType,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw new Error('RATE_LIMITED');
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to confirm upload' }));
+    throw new Error(errorData.detail || 'Failed to confirm upload');
+  }
+
+  return response.json();
+};
+
+/**
+ * Upload proof with type - uses presigned URL if available, falls back to direct upload
  */
 export const uploadProof = async (
+  token: string,
+  file: File,
+  proofType: ProofType = 'AFTER',
+  onProgress?: (percent: number) => void
+): Promise<UploadResponse> => {
+  try {
+    // Try presigned upload first (for S3)
+    const presigned = await getPresignedUpload(token, file.name, file.type, proofType);
+
+    // Check if it's a local upload (URL contains /upload/local)
+    if (presigned.upload_url.includes('/upload/local')) {
+      // Fall back to direct upload for local storage
+      return uploadProofDirect(token, file, proofType);
+    }
+
+    // Upload to S3
+    await uploadToPresigned(presigned, file, onProgress);
+
+    // Confirm upload
+    return confirmUpload(token, presigned.file_key, proofType);
+  } catch (error) {
+    // Fall back to direct upload if presigned fails
+    console.warn('Presigned upload failed, falling back to direct upload:', error);
+    return uploadProofDirect(token, file, proofType);
+  }
+};
+
+/**
+ * Direct upload to server (fallback for local storage)
+ */
+export const uploadProofDirect = async (
   token: string,
   file: File,
   proofType: ProofType = 'AFTER'

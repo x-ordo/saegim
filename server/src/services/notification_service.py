@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -14,6 +15,44 @@ from src.services.message_render import render
 from src.services.short_link_service import ShortLinkService
 
 logger = logging.getLogger(__name__)
+
+
+async def _retry_with_backoff(
+    coro_func,
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    *args,
+    **kwargs
+):
+    """
+    Execute coroutine with exponential backoff retry.
+
+    Args:
+        coro_func: Async function to execute
+        max_retries: Maximum retry attempts
+        base_delay: Base delay in seconds (doubles each retry)
+
+    Raises:
+        Last exception if all retries fail
+    """
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return await coro_func(*args, **kwargs)
+        except Exception as e:
+            last_exception = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt)  # Exponential backoff
+                logger.warning(
+                    f"Retry attempt {attempt + 1}/{max_retries} failed: {e}. "
+                    f"Retrying in {delay}s..."
+                )
+                await asyncio.sleep(delay)
+            else:
+                logger.error(f"All {max_retries + 1} attempts failed: {e}")
+
+    raise last_exception
 
 
 def _clean_phone(phone: str) -> str:
@@ -186,34 +225,43 @@ class NotificationService:
         self.db.commit()
 
     async def _real_send(self, notification: Notification, phone: str, notification_type: NotificationType, ctx: dict, templates: dict) -> None:
-        """Real send via selected provider."""
+        """Real send via selected provider with retry logic."""
         provider = get_primary_provider()
 
-        if notification.channel == NotificationChannel.SMS:
-            template = templates['sms_sender'] if notification_type == NotificationType.SENDER else templates['sms_recipient']
-            content = render(template, ctx)
-            res = await provider.send_sms(phone=phone, content=content, from_no=settings.SENS_SMS_FROM)
-        else:
-            template = templates['alimtalk_sender'] if notification_type == NotificationType.SENDER else templates['alimtalk_recipient']
-            message = render(template, ctx)
-            res = await provider.send_alimtalk(
-                phone=phone,
-                message=message,
-                sender_key=settings.KAKAO_SENDER_KEY or "",
-                template_code=(templates.get('kakao_template_code') or ""),
-                sender_no=settings.KAKAO_SENDER_NO,
-                cid=settings.KAKAO_CID,
-                fall_back_yn=False,
-            )
+        async def _do_send():
+            if notification.channel == NotificationChannel.SMS:
+                template = templates['sms_sender'] if notification_type == NotificationType.SENDER else templates['sms_recipient']
+                content = render(template, ctx)
+                return await provider.send_sms(phone=phone, content=content, from_no=settings.SENS_SMS_FROM)
+            else:
+                template = templates['alimtalk_sender'] if notification_type == NotificationType.SENDER else templates['alimtalk_recipient']
+                message = render(template, ctx)
+                return await provider.send_alimtalk(
+                    phone=phone,
+                    message=message,
+                    sender_key=settings.KAKAO_SENDER_KEY or "",
+                    template_code=(templates.get('kakao_template_code') or ""),
+                    sender_no=settings.KAKAO_SENDER_NO,
+                    cid=settings.KAKAO_CID,
+                    fall_back_yn=False,
+                )
+
+        # Execute with retry
+        res = await _retry_with_backoff(
+            _do_send,
+            max_retries=settings.NOTIFICATION_MAX_RETRIES,
+            base_delay=settings.NOTIFICATION_RETRY_DELAY_SECONDS,
+        )
 
         notification.status = NotificationStatus.SENT
         notification.sent_at = datetime.utcnow()
         notification.provider_request_id = res.request_id
         notification.provider_response = str(res.raw)[:4000]
+        notification.retry_count = 0  # Will be updated if retries occurred
         self.db.commit()
 
     async def _send_sms_fallback(self, *, order_id: int, phone: str, notification_type: NotificationType, ctx: dict, templates: dict) -> None:
-        """Send SMS fallback (requires SENS config)."""
+        """Send SMS fallback with retry (requires SENS config)."""
         phone = _clean_phone(phone)
         phone_hash = hash_phone(phone)
 
@@ -239,7 +287,17 @@ class NotificationService:
                 provider = get_sms_provider()
                 template = templates['sms_sender'] if notification_type == NotificationType.SENDER else templates['sms_recipient']
                 content = render(template, ctx)
-                res = await provider.send_sms(phone=phone, content=content, from_no=settings.SENS_SMS_FROM)
+
+                async def _do_fallback_send():
+                    return await provider.send_sms(phone=phone, content=content, from_no=settings.SENS_SMS_FROM)
+
+                # Execute with retry
+                res = await _retry_with_backoff(
+                    _do_fallback_send,
+                    max_retries=settings.NOTIFICATION_MAX_RETRIES,
+                    base_delay=settings.NOTIFICATION_RETRY_DELAY_SECONDS,
+                )
+
                 fallback.status = NotificationStatus.FALLBACK_SENT
                 fallback.sent_at = datetime.utcnow()
                 fallback.provider_request_id = res.request_id
@@ -250,5 +308,121 @@ class NotificationService:
             fallback.status = NotificationStatus.FAILED
             fallback.error_code = str(code)
             fallback.error_message = str(details or e)
+            logger.error(f"SMS fallback failed after retries: order={order_id} error={e}")
         finally:
             self.db.commit()
+
+    async def send_reminder_notification(self, order: "Order", background_tasks: BackgroundTasks) -> None:
+        """Send reminder notification to sender (only) for pending proof upload."""
+        if not order:
+            return
+
+        order_id = order.id
+
+        # Reminder only to sender
+        try:
+            sender_phone = decrypt_phone(order.sender_phone_encrypted)
+            sender_phone = _clean_phone(sender_phone)
+            if sender_phone:
+                background_tasks.add_task(
+                    self._send_reminder,
+                    order_id,
+                    sender_phone,
+                )
+        except Exception as e:
+            logger.error(f"Sender phone decrypt failed for reminder order {order_id}: {e}")
+            raise
+
+    async def _send_reminder(self, order_id: int, phone: str) -> None:
+        """Send a reminder notification with DB log."""
+        phone = _clean_phone(phone)
+        phone_hash = hash_phone(phone)
+
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            return
+
+        token = None
+        try:
+            if order.qr_token is not None:
+                token = order.qr_token.token
+        except Exception:
+            token = None
+
+        short_url: Optional[str] = None
+        if token:
+            sl = ShortLinkService(self.db).get_or_create_public_proof(order_id=order_id, token=token)
+            base = _short_base_for_order(order)
+            short_url = f"{base}/s/{sl.code}"
+
+        # Reminder uses SMS by default (since it's a follow-up)
+        provider_key = (settings.MESSAGING_PROVIDER or "mock").strip().lower()
+        channel = NotificationChannel.SMS
+
+        notification = Notification(
+            order_id=order_id,
+            type=NotificationType.REMINDER,
+            channel=channel,
+            phone_hash=phone_hash,
+            message_url=short_url,
+            status=NotificationStatus.PENDING,
+        )
+        self.db.add(notification)
+        self.db.commit()
+        self.db.refresh(notification)
+
+        brand = _brand_for_order(order)
+        base = _short_base_for_order(order)
+        canonical_url = f"{base}/p/{token}" if token else base
+        ctx = {
+            "brand": brand,
+            "url": short_url or canonical_url,
+            "order": order.order_number,
+            "context": (order.context or "").strip(),
+            "sender": (order.sender_name or "").strip(),
+            "recipient": (order.recipient_name or "").strip(),
+        }
+
+        # Reminder template (simple SMS)
+        reminder_template = settings.SMS_REMINDER_TEMPLATE or (
+            "[{brand}] 증빙 사진 업로드를 잊지 마세요! 주문: {order}. 업로드: {url}"
+        )
+
+        try:
+            if settings.MESSAGING_PROVIDER == "mock":
+                from src.services.message_render import render
+                message = render(reminder_template, ctx)
+                logger.info(f"[MOCK] reminder notify phone={phone} msg={message}")
+                notification.status = NotificationStatus.MOCK_SENT
+                notification.sent_at = datetime.utcnow()
+                notification.provider_response = "MOCK_REMINDER"
+            else:
+                provider = get_sms_provider()
+                from src.services.message_render import render
+                content = render(reminder_template, ctx)
+
+                async def _do_reminder_send():
+                    return await provider.send_sms(phone=phone, content=content, from_no=settings.SENS_SMS_FROM)
+
+                res = await _retry_with_backoff(
+                    _do_reminder_send,
+                    max_retries=settings.NOTIFICATION_MAX_RETRIES,
+                    base_delay=settings.NOTIFICATION_RETRY_DELAY_SECONDS,
+                )
+
+                notification.status = NotificationStatus.SENT
+                notification.sent_at = datetime.utcnow()
+                notification.provider_request_id = res.request_id
+                notification.provider_response = str(res.raw)[:4000]
+
+            self.db.commit()
+
+        except Exception as e:
+            code = getattr(e, "code", None) or "REMINDER_FAILED"
+            details = getattr(e, "details", None)
+            logger.error(f"Reminder notification failed order={order_id} code={code} err={e}")
+            notification.status = NotificationStatus.FAILED
+            notification.error_code = str(code)
+            notification.error_message = str(details or e)
+            self.db.commit()
+            raise

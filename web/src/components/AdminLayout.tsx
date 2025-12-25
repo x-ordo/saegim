@@ -83,6 +83,9 @@ export const AdminLayout = ({
           <div className="nav">
             <Link href="/app">대시보드</Link>
             <Link href="/app/orders">주문</Link>
+            <Link href="/app/notifications">알림</Link>
+            <Link href="/app/reminders">리마인더</Link>
+            <Link href="/app/analytics">분석</Link>
             <Link href="/app/orgs">조직</Link>
             {isOrgAdmin && <Link href="/app/settings/branding">설정</Link>}
           </div>

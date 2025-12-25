@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../../../components/AdminLayout';
-import { getOrderDetail, issueToken, resendNotify, OrderDetail } from '../../../services/adminApi';
+import { getOrderDetail, issueToken, resendNotify, updateOrder, deleteOrder, OrderDetail, OrderUpdate } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
 
 // v1: QR 이미지는 외부 생성 API를 사용 (의존성 0)
@@ -28,6 +28,15 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<OrderUpdate>({});
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     if (!id || typeof id !== 'string') return;
@@ -99,6 +108,53 @@ export default function OrderDetailPage() {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  // Edit handlers
+  const openEditModal = () => {
+    if (!order) return;
+    setEditForm({
+      order_number: order.order_number,
+      context: order.context || '',
+      sender_name: order.sender_name,
+      recipient_name: order.recipient_name || '',
+    });
+    setEditError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!id || typeof id !== 'string') return;
+    try {
+      setBusy(true);
+      setEditError(null);
+      const token = await getAdminToken();
+      await updateOrder(token, Number(id), editForm);
+      setShowEditModal(false);
+      await load();
+      setToast('주문 정보가 수정되었습니다');
+      window.setTimeout(() => setToast(null), 1600);
+    } catch (e: any) {
+      setEditError(e?.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Delete handlers
+  const handleDelete = async () => {
+    if (!id || typeof id !== 'string') return;
+    try {
+      setDeleting(true);
+      const token = await getAdminToken();
+      await deleteOrder(token, Number(id));
+      router.replace('/app/orders');
+    } catch (e: any) {
+      setError(e?.message || String(e));
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <AdminLayout title={`Order #${id || ''}`}>
       <div className="stack">
@@ -115,6 +171,19 @@ export default function OrderDetailPage() {
             <div className="row no-print">
               <Link className="btn secondary" href="/app/orders">← Orders</Link>
               <button className="btn secondary" onClick={() => load()} disabled={busy}>Refresh</button>
+              {data && (
+                <>
+                  <button className="btn" onClick={openEditModal} disabled={busy}>수정</button>
+                  <button
+                    className="btn"
+                    style={{ background: '#ef4444', color: 'white' }}
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={busy}
+                  >
+                    삭제
+                  </button>
+                </>
+              )}
               {toast && <span className="ok" style={{ padding: '6px 10px' }}>{toast}</span>}
             </div>
 
@@ -141,6 +210,12 @@ export default function OrderDetailPage() {
                       <div className="muted">Org: {data.organization.name}</div>
                     </div>
                   </div>
+                  {data.order.context && (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="label">Context</div>
+                      <div>{data.order.context}</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* QR + 링크 */}
@@ -348,6 +423,163 @@ export default function OrderDetailPage() {
           </>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: 500, margin: 20 }}>
+            <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 18 }}>주문 수정</div>
+
+            {editError && <div className="danger" style={{ marginBottom: 12 }}>{editError}</div>}
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>주문번호</label>
+              <input
+                type="text"
+                value={editForm.order_number || ''}
+                onChange={(e) => setEditForm({ ...editForm, order_number: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>컨텍스트</label>
+              <input
+                type="text"
+                value={editForm.context || ''}
+                onChange={(e) => setEditForm({ ...editForm, context: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+                placeholder="예: 근조화환, 가죽가방 수선"
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>발주자 이름</label>
+              <input
+                type="text"
+                value={editForm.sender_name || ''}
+                onChange={(e) => setEditForm({ ...editForm, sender_name: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>발주자 전화번호</label>
+              <input
+                type="text"
+                value={editForm.sender_phone || ''}
+                onChange={(e) => setEditForm({ ...editForm, sender_phone: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+                placeholder="+821012345678 또는 010-1234-5678"
+              />
+              <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                비워두면 변경하지 않음
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>수령인 이름</label>
+              <input
+                type="text"
+                value={editForm.recipient_name || ''}
+                onChange={(e) => setEditForm({ ...editForm, recipient_name: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>수령인 전화번호</label>
+              <input
+                type="text"
+                value={editForm.recipient_phone || ''}
+                onChange={(e) => setEditForm({ ...editForm, recipient_phone: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
+                placeholder="+821012345678 또는 010-1234-5678"
+              />
+              <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                비워두면 변경하지 않음
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                className="btn secondary"
+                onClick={() => setShowEditModal(false)}
+                disabled={busy}
+              >
+                취소
+              </button>
+              <button
+                className="btn"
+                onClick={handleEditSubmit}
+                disabled={busy}
+              >
+                {busy ? '저장 중…' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: 400, margin: 20 }}>
+            <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 18, color: '#ef4444' }}>
+              주문 삭제
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <p>이 주문을 정말 삭제하시겠습니까?</p>
+              <p className="muted" style={{ marginTop: 8 }}>
+                주문번호: <b>{order?.order_number}</b>
+              </p>
+              <p className="muted" style={{ marginTop: 4, color: '#ef4444' }}>
+                관련된 모든 데이터(증빙, 알림 로그, QR 토큰)가 함께 삭제됩니다.
+                이 작업은 되돌릴 수 없습니다.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                className="btn secondary"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                취소
+              </button>
+              <button
+                className="btn"
+                style={{ background: '#ef4444', color: 'white' }}
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? '삭제 중…' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
