@@ -36,7 +36,7 @@ class TestGetOrderByToken:
         self, client: TestClient, db: Session, test_token: QRToken
     ):
         """Inactive token should return 404."""
-        test_token.is_active = False
+        test_token.is_valid = False
         db.commit()
 
         response = client.get(f"/api/v1/public/order/{test_token.token}")
