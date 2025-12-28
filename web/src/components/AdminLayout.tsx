@@ -1,38 +1,31 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  OrganizationSwitcher,
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-  useAuth,
-} from '@clerk/nextjs';
 import { useRouter } from 'next/router';
 import { getMe, Me } from '../services/adminApi';
 import { useAdminToken } from '../services/useAdminToken';
 
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-// Hook that returns mock auth values when Clerk is not configured
-function useAuthSafe() {
-  if (!clerkPubKey) {
-    return { isLoaded: true, isSignedIn: false, orgId: null };
-  }
-  return useAuth();
-}
+// Conditional imports for Clerk components - only load when Clerk is configured
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const clerkComponents = clerkPubKey ? require('@clerk/nextjs') : null;
+const OrganizationSwitcher = clerkComponents?.OrganizationSwitcher;
+const SignedIn = clerkComponents?.SignedIn;
+const SignedOut = clerkComponents?.SignedOut;
+const SignInButton = clerkComponents?.SignInButton;
+const UserButton = clerkComponents?.UserButton;
+const useAuth = clerkComponents?.useAuth;
 
-export const AdminLayout = ({
-  title,
-  children,
-  allowNoOrg = false,
-}: {
+interface AdminLayoutProps {
   title: string;
   children: React.ReactNode;
   allowNoOrg?: boolean;
-}) => {
+}
+
+// Layout component when Clerk is configured
+function AdminLayoutWithClerk({ title, children, allowNoOrg = false }: AdminLayoutProps) {
   const router = useRouter();
-  const { isLoaded, isSignedIn, orgId } = useAuthSafe();
+  const { isLoaded, isSignedIn, orgId } = useAuth();
   const { getAdminToken } = useAdminToken();
 
   const [me, setMe] = useState<Me | null>(null);
@@ -46,7 +39,6 @@ export const AdminLayout = ({
     return false;
   }, [me?.org_role]);
 
-  // Guard: require active organization for /app pages (multi-tenant scope)
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) return;
@@ -59,7 +51,6 @@ export const AdminLayout = ({
     }
   }, [allowNoOrg, isLoaded, isSignedIn, orgId, router]);
 
-  // Fetch server-side org mapping (DB tenant) for display/debug
   useEffect(() => {
     const run = async () => {
       if (!isLoaded) return;
@@ -78,6 +69,68 @@ export const AdminLayout = ({
     };
     run();
   }, [allowNoOrg, getAdminToken, isLoaded, isSignedIn, orgId]);
+
+  return (
+    <AdminLayoutShell
+      title={title}
+      meErr={meErr}
+      me={me}
+      isLoaded={isLoaded}
+      isSignedIn={isSignedIn}
+      orgId={orgId}
+      isOrgAdmin={isOrgAdmin}
+      allowNoOrg={allowNoOrg}
+      showClerkAuth={true}
+    >
+      {children}
+    </AdminLayoutShell>
+  );
+}
+
+// Layout component when Clerk is NOT configured (dev mode)
+function AdminLayoutWithoutClerk({ title, children, allowNoOrg = false }: AdminLayoutProps) {
+  return (
+    <AdminLayoutShell
+      title={title}
+      meErr={null}
+      me={null}
+      isLoaded={true}
+      isSignedIn={false}
+      orgId={null}
+      isOrgAdmin={false}
+      allowNoOrg={allowNoOrg}
+      showClerkAuth={false}
+    >
+      {children}
+    </AdminLayoutShell>
+  );
+}
+
+// Shared layout shell (no hooks that require ClerkProvider)
+function AdminLayoutShell({
+  title,
+  children,
+  meErr,
+  me,
+  isLoaded,
+  isSignedIn,
+  orgId,
+  isOrgAdmin,
+  allowNoOrg,
+  showClerkAuth,
+}: {
+  title: string;
+  children: React.ReactNode;
+  meErr: string | null;
+  me: Me | null;
+  isLoaded: boolean;
+  isSignedIn: boolean;
+  orgId: string | null | undefined;
+  isOrgAdmin: boolean;
+  allowNoOrg: boolean;
+  showClerkAuth: boolean;
+}) {
+  const router = useRouter();
 
   return (
     <div className="page">
@@ -105,7 +158,7 @@ export const AdminLayout = ({
           </div>
 
           <div className="actions">
-            {clerkPubKey ? (
+            {showClerkAuth ? (
               <>
                 <SignedOut>
                   <SignInButton>
@@ -121,7 +174,7 @@ export const AdminLayout = ({
                 </SignedIn>
               </>
             ) : (
-              <span className="muted" style={{ fontSize: 12 }}>Clerk 미설정</span>
+              <span className="muted" style={{ fontSize: 12 }}>Clerk 미설정 (개발 모드)</span>
             )}
           </div>
         </div>
@@ -145,6 +198,16 @@ export const AdminLayout = ({
           </div>
         )}
 
+        {!showClerkAuth && (
+          <div className="card" style={{ marginBottom: 16, background: '#fef3c7', border: '1px solid #f59e0b' }}>
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#92400e' }}>개발 모드</div>
+            <div style={{ fontSize: 13, color: '#78350f' }}>
+              Clerk가 설정되지 않아 인증 없이 UI를 미리봅니다.
+              실제 데이터를 보려면 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY를 설정하세요.
+            </div>
+          </div>
+        )}
+
         {me?.organization && (
           <div className="muted" style={{ marginBottom: 10 }}>
             현재 조직: <b>{me.organization.name}</b> (plan: {me.organization.plan_type})
@@ -155,4 +218,7 @@ export const AdminLayout = ({
       </div>
     </div>
   );
-};
+}
+
+// Export the appropriate layout based on Clerk configuration
+export const AdminLayout = clerkPubKey ? AdminLayoutWithClerk : AdminLayoutWithoutClerk;

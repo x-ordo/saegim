@@ -1,10 +1,25 @@
-import { useAuth } from '@clerk/nextjs';
-
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+// Conditional import: only load Clerk when configured
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const useAuthReal = clerkPubKey ? require('@clerk/nextjs').useAuth : null;
+
+// Mock auth hook for when Clerk is not configured
+function useAuthMock() {
+  return {
+    isLoaded: true,
+    isSignedIn: false,
+    getToken: async () => null,
+    orgId: null,
+    orgRole: null,
+  };
+}
+
+// Use the appropriate auth hook based on configuration
+const useAuthHook = clerkPubKey ? useAuthReal : useAuthMock;
+
 export function useAdminToken() {
-  // Always call useAuth unconditionally to follow React hooks rules
-  const auth = useAuth();
+  const auth = useAuthHook();
 
   // If Clerk is not configured, return mock values for local development
   if (!clerkPubKey) {
