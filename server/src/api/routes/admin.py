@@ -1,5 +1,7 @@
-from typing import Optional
+from datetime import date
+from typing import Optional, List
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 import csv
 import io
 from sqlalchemy.orm import Session
@@ -15,6 +17,16 @@ from src.schemas.admin import (
     LabelsIn,
     LabelOut,
     CsvImportOut,
+    DashboardOut,
+    OrderUpdate,
+    NotificationListOut,
+    NotificationStats,
+    BulkTokenRequest,
+    BulkTokenResponse,
+    AnalyticsOut,
+    BulkTokenResult,
+    ReminderRequest,
+    ReminderResponse,
 )
 from src.schemas.order import OrderCreate, OrderOut
 from src.models.organization import Organization
@@ -100,19 +112,33 @@ def create_organization(
     return AdminService(db).create_organization(payload)
 
 
-@router.get("/orders", response_model=list[OrderOut])
+@router.get("/orders")
 def list_orders(
     organization_id: Optional[int] = Query(default=None),
     q: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     day: Optional[str] = Query(default=None, description="YYYY-MM-DD (Asia/Seoul)"),
     today: bool = Query(default=False),
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
     # Tenant scoping: bearer token forces ctx.organization_id.
     org_id = ctx.organization_id if ctx.organization_id is not None else organization_id
-    return AdminService(db).list_orders(organization_id=org_id, q=q, status=status, day=day, today=today)
+    return AdminService(db).list_orders(
+        organization_id=org_id,
+        q=q,
+        status=status,
+        day=day,
+        today=today,
+        start_date=start_date,
+        end_date=end_date,
+        page=page,
+        limit=limit,
+    )
 
 
 @router.post("/orders/import/csv", response_model=CsvImportOut)
@@ -214,4 +240,198 @@ def get_labels(
         scope_org_id=ctx.organization_id,
         ensure_tokens=payload.ensure_tokens,
         force=payload.force,
+    )
+
+
+@router.patch("/orders/{order_id}", response_model=OrderOut)
+def update_order(
+    order_id: int,
+    payload: OrderUpdate,
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Update an existing order."""
+    return AdminService(db).update_order(order_id, payload, scope_org_id=ctx.organization_id)
+
+
+@router.delete("/orders/{order_id}")
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Delete an order and all related data."""
+    return AdminService(db).delete_order(order_id, scope_org_id=ctx.organization_id)
+
+
+@router.get("/dashboard", response_model=DashboardOut)
+def get_dashboard(
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Get dashboard KPI and recent proofs."""
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).get_dashboard(
+        organization_id=ctx.organization_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@router.get("/notifications", response_model=NotificationListOut)
+def list_notifications(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=100),
+    status: str | None = Query(default=None, description="SENT, FAILED, PENDING"),
+    channel: str | None = Query(default=None, description="ALIMTALK, SMS"),
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """List notifications with pagination and filters."""
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).list_notifications(
+        organization_id=ctx.organization_id,
+        page=page,
+        limit=limit,
+        status=status,
+        channel=channel,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@router.get("/notifications/stats", response_model=NotificationStats)
+def get_notification_stats(
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Get notification statistics (success/failed/pending counts)."""
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).get_notification_stats(
+        organization_id=ctx.organization_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@router.post("/orders/bulk-tokens", response_model=BulkTokenResponse)
+def bulk_generate_tokens(
+    payload: BulkTokenRequest,
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Generate tokens for multiple orders at once.
+
+    WARNING: If force=True, existing tokens will be replaced (breaks previously shared links).
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).bulk_generate_tokens(
+        order_ids=payload.order_ids,
+        scope_org_id=ctx.organization_id,
+        force=payload.force,
+    )
+
+
+@router.get("/orders/export/csv")
+def export_orders_csv(
+    status: str | None = Query(default=None),
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Export orders to CSV file.
+
+    Returns a streaming CSV response with order data.
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+
+    csv_data = AdminService(db).export_orders_csv(
+        organization_id=ctx.organization_id,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=orders_{date.today().isoformat()}.csv"
+        },
+    )
+
+
+@router.get("/analytics", response_model=AnalyticsOut)
+def get_analytics(
+    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Get detailed analytics with trends and breakdowns.
+
+    If no dates provided, defaults to last 30 days.
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).get_analytics(
+        organization_id=ctx.organization_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@router.post("/orders/reminders", response_model=ReminderResponse)
+async def send_reminders(
+    payload: ReminderRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Send reminder notifications to orders pending proof upload.
+
+    - order_ids: Optional list of specific order IDs. If None, finds all pending orders.
+    - hours_since_token: Only remind orders where token was issued > N hours ago.
+    - max_reminders: Maximum number of reminders per order (prevents spam).
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return await AdminService(db).send_reminders(
+        organization_id=ctx.organization_id,
+        order_ids=payload.order_ids,
+        hours_since_token=payload.hours_since_token,
+        max_reminders=payload.max_reminders,
+        background_tasks=background_tasks,
+    )
+
+
+@router.get("/orders/pending-reminders")
+def get_pending_reminders(
+    hours_since_token: int = Query(default=24, description="Token issued > N hours ago"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Get list of orders that could receive reminders.
+
+    Returns orders that:
+    - Have token issued but no proof uploaded
+    - Token was issued > hours_since_token ago
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+    return AdminService(db).get_pending_reminders(
+        organization_id=ctx.organization_id,
+        hours_since_token=hours_since_token,
     )

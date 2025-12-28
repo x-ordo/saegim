@@ -108,6 +108,62 @@ class ProofService:
             "message": f"{proof_type.value} proof uploaded successfully.",
         }
 
+    async def create_proof_from_key(
+        self,
+        order: Order,
+        file_key: str,
+        proof_type: ProofType,
+        background_tasks: BackgroundTasks,
+    ) -> dict:
+        """
+        Create proof record from a file key (for S3/presigned uploads).
+        The file is already uploaded to storage, we just create the DB record.
+        """
+        # Check if same proof_type already exists for this order
+        existing_proof = (
+            self.db.query(Proof)
+            .filter(Proof.order_id == order.id, Proof.proof_type == proof_type)
+            .first()
+        )
+        if existing_proof:
+            raise ValueError(f"{proof_type.value} proof already uploaded for this order.")
+
+        # Create proof record with storage key
+        proof = Proof(
+            order_id=order.id,
+            proof_type=proof_type,
+            file_path=file_key,  # Store storage key
+            file_size=0,  # Size is unknown for presigned uploads
+            mime_type="image/jpeg",  # Default, could be passed from client
+        )
+        self.db.add(proof)
+
+        # Only update status, invalidate token, and send notifications for AFTER proof
+        if proof_type == ProofType.AFTER:
+            order.status = OrderStatus.PROOF_UPLOADED
+            # Get token from order
+            if order.qr_token:
+                self.token_service.invalidate_token_after_proof(order.qr_token.token)
+
+        self.db.commit()
+        self.db.refresh(proof)
+
+        logger.info(f"Created {proof_type.value} proof {proof.id} from key for order {order.id}")
+
+        # Trigger notifications only for AFTER proof (non-blocking)
+        if proof_type == ProofType.AFTER:
+            await self.notification_service.send_dual_notification(
+                order=order,
+                background_tasks=background_tasks,
+            )
+
+        return {
+            "status": "success",
+            "proof_id": proof.id,
+            "proof_type": proof_type,
+            "message": f"{proof_type.value} proof uploaded successfully.",
+        }
+
     def get_proofs_by_order_id(self, order_id: int) -> List[Proof]:
         """Get all proofs for a specific order."""
         return self.db.query(Proof).filter(Proof.order_id == order_id).all()

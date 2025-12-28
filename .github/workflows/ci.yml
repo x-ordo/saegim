@@ -6,9 +6,14 @@ on:
   pull_request:
     branches: [main, develop]
 
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
 jobs:
-  # Backend (FastAPI) Tests
-  backend:
+  # Backend Tests
+  backend-test:
+    name: Backend Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,13 +34,21 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      APP_ENV: test
+      JWT_SECRET: test-jwt-secret-key-at-least-32-chars!
+      ENCRYPTION_KEY: test-encryption-key-32-bytes!!!
+      ADMIN_API_KEY: test-admin-api-key-secure
+      MESSAGING_PROVIDER: mock
+      DATABASE_URL: postgresql://test:test@localhost:5432/prooflink_test
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
           cache-dependency-path: server/requirements.txt
 
@@ -45,19 +58,46 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio httpx
 
-      - name: Run linting
+      - name: Run tests with coverage
         run: |
-          pip install ruff
-          ruff check src/
+          pytest --cov=src --cov-report=xml --cov-report=term-missing
 
-      - name: Run tests
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/prooflink_test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./server/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
+  # Backend Lint
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install linting tools
         run: |
-          pytest -v || echo "No tests found"
+          pip install ruff mypy
 
-  # Frontend (Next.js) Build & Lint
-  frontend:
+      - name: Run Ruff (linting)
+        run: ruff check src/
+
+      - name: Run Ruff (formatting check)
+        run: ruff format --check src/
+
+  # Frontend Tests
+  frontend-test:
+    name: Frontend Build & Lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -69,15 +109,51 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linting
+      - name: Run ESLint
         run: npm run lint
 
       - name: Type check
         run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+
+  # Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install safety
+        run: pip install safety
+
+      - name: Check Python dependencies for vulnerabilities
+        run: |
+          cd server && pip install -r requirements.txt
+          safety check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check npm dependencies for vulnerabilities
+        run: |
+          cd web && npm ci
+          npm audit --audit-level=high
+
