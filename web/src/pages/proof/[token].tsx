@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { UploadForm } from '../../components/UploadForm';
+import { ProofWizard } from '../../components/ProofWizard';
 import { getOrderByToken, getProofByToken, OrderSummary, ProofData } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -159,13 +159,10 @@ export default function ProofPage() {
               </CardContent>
             </Card>
 
-            {/* Upload Form */}
+            {/* Proof Wizard - Streamlined BEFORE/AFTER Flow */}
             <Card>
               <CardContent className="pt-6">
-                <p className="mb-4 text-sm text-muted-foreground">
-                  수선 전/후 사진을 업로드해주세요. 업로드 완료 후 고객에게 확인 링크가 전달됩니다.
-                </p>
-                <UploadForm
+                <ProofWizard
                   token={t}
                   hasBeforeProof={order.has_before_proof}
                   hasAfterProof={order.has_after_proof}

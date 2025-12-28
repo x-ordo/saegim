@@ -110,6 +110,66 @@ export const uploadProof = async (
   return response.json();
 };
 
+export interface UploadProgressCallback {
+  (percent: number): void;
+}
+
+/**
+ * Upload proof with progress tracking using XHR
+ * 진행률 추적을 지원하는 업로드 함수 (XHR 기반)
+ */
+export const uploadProofWithProgress = async (
+  token: string,
+  file: File,
+  proofType: ProofType = 'AFTER',
+  onProgress?: UploadProgressCallback,
+  timeoutMs: number = 60000
+): Promise<UploadResponse> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Progress tracking
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        onProgress(percent);
+      }
+    });
+
+    // Success handler
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          resolve({ status: 'success', proof_id: 0, proof_type: proofType, message: 'Upload completed' });
+        }
+      } else if (xhr.status === 429) {
+        reject(new Error('RATE_LIMITED'));
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.detail || 'Upload failed'));
+        } catch {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      }
+    });
+
+    // Error handlers
+    xhr.addEventListener('error', () => reject(new Error('NETWORK_ERROR')));
+    xhr.addEventListener('timeout', () => reject(new Error('TIMEOUT')));
+    xhr.addEventListener('abort', () => reject(new Error('UPLOAD_ABORTED')));
+
+    // Configure and send
+    xhr.timeout = timeoutMs;
+    xhr.open('POST', `${API_BASE_URL}/public/proof/${token}/upload?proof_type=${proofType}`);
+    xhr.send(formData);
+  });
+};
+
 /**
  * Get proof data (for public proof page)
  */
