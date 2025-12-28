@@ -1,6 +1,6 @@
 /**
  * ProofWizard - Streamlined BEFORE/AFTER proof upload flow
- * 스트림라인 수선 전/후 증빙 업로드 플로우
+ * 스트림라인 배송 증빙 업로드 플로우
  *
  * Flow: BEFORE → auto-advance → AFTER → complete
  * Target: Complete in under 30 seconds
@@ -279,7 +279,7 @@ export const ProofWizard = ({
   const renderStepContent = (step: 'before' | 'after') => {
     const state = step === 'before' ? beforeState : afterState;
     const inputRef = step === 'before' ? beforeInputRef : afterInputRef;
-    const stepLabel = step === 'before' ? '수선 전' : '수선 후';
+    const stepLabel = step === 'before' ? '상품 사진' : '배송 증빙';
     const stepNumber = step === 'before' ? 1 : 2;
     const isActive = currentStep === step;
 
@@ -494,12 +494,12 @@ export const ProofWizard = ({
       {/* Step title */}
       <div className="text-center">
         <h3 className="text-lg font-semibold">
-          {currentStep === 'before' ? 'Step 1: 수선 전 사진' : 'Step 2: 수선 후 사진'}
+          {currentStep === 'before' ? 'Step 1: 상품 사진' : 'Step 2: 배송 증빙'}
         </h3>
         <p className="text-sm text-muted-foreground">
           {currentStep === 'before'
-            ? '수선하기 전 제품 상태를 촬영해주세요'
-            : '수선 완료된 제품을 촬영해주세요'}
+            ? '배송할 상품을 촬영해주세요'
+            : '배송 완료된 상품을 촬영해주세요'}
         </p>
       </div>
 
@@ -525,7 +525,7 @@ export const ProofWizard = ({
           onClick={skipBefore}
         >
           <SkipForward className="mr-2 h-4 w-4" />
-          수선 전 사진 건너뛰기
+          상품 사진 건너뛰기
         </Button>
       )}
     </div>

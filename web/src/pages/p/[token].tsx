@@ -82,7 +82,7 @@ export default function PublicProofPage() {
   const share = async () => {
     try {
       if (!canShare) return;
-      const title = '수선 완료 증빙';
+      const title = '배송 완료 증빙';
       const lines = [
         proof?.organization_name ? proof.organization_name : '',
         proof?.context ? String(proof.context) : '',
@@ -124,7 +124,7 @@ export default function PublicProofPage() {
                 className="mx-auto mb-3 max-w-[140px] max-h-12 object-contain"
               />
             )}
-            <Badge variant="success" className="mb-2">수선 완료</Badge>
+            <Badge variant="success" className="mb-2">배송 완료</Badge>
             <p className="text-muted-foreground">
               {proof?.organization_name || '새김'}
             </p>
@@ -225,7 +225,7 @@ export default function PublicProofPage() {
                   </div>
                   {proof.asset_meta.repair_note && (
                     <div className="mt-4 rounded-lg bg-muted p-3">
-                      <p className="text-xs font-medium text-muted-foreground">수선 내용</p>
+                      <p className="text-xs font-medium text-muted-foreground">배송 메모</p>
                       <p className="mt-1 text-sm">{proof.asset_meta.repair_note}</p>
                     </div>
                   )}
@@ -245,7 +245,7 @@ export default function PublicProofPage() {
                 ) : singleProofUrl ? (
                   <img
                     src={singleProofUrl}
-                    alt="수선 증빙 사진"
+                    alt="배송 증빙 사진"
                     className="w-full"
                   />
                 ) : (
@@ -272,13 +272,13 @@ export default function PublicProofPage() {
                   <Button variant="outline" size="sm" asChild>
                     <a href={getFullUrl(beforeProof.proof_url)} target="_blank" rel="noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      수선 전 원본
+                      상품 원본
                     </a>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
                     <a href={getFullUrl(afterProof.proof_url)} target="_blank" rel="noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      수선 후 원본
+                      배송 증빙 원본
                     </a>
                   </Button>
                 </div>

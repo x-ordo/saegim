@@ -10,8 +10,8 @@ interface BeforeAfterSliderProps {
 export const BeforeAfterSlider = ({
   beforeUrl,
   afterUrl,
-  beforeLabel = '수선 전',
-  afterLabel = '수선 후',
+  beforeLabel = '상품',
+  afterLabel = '배송 완료',
 }: BeforeAfterSliderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);

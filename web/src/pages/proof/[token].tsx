@@ -71,7 +71,7 @@ export default function ProofPage() {
               )}
               <div className="flex-1">
                 <h1 className="font-semibold">{brandName}</h1>
-                <p className="text-sm text-muted-foreground">수선 증빙 업로드</p>
+                <p className="text-sm text-muted-foreground">배송 증빙 업로드</p>
               </div>
               {!hideSaegim && (
                 <span className="text-xs text-muted-foreground">Powered by 새김</span>
@@ -121,7 +121,7 @@ export default function ProofPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Upload className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">수선 증빙 업로드</CardTitle>
+                  <CardTitle className="text-lg">배송 증빙 업로드</CardTitle>
                 </div>
                 <CardDescription>
                   주문번호: <span className="font-semibold text-foreground">{order.order_number}</span>
@@ -150,10 +150,10 @@ export default function ProofPage() {
                 {/* Proof Status */}
                 <div className="mt-3 flex gap-2">
                   <Badge variant={order.has_before_proof ? 'success' : 'outline'}>
-                    수선 전 {order.has_before_proof ? '완료' : '대기'}
+                    상품 사진 {order.has_before_proof ? '완료' : '대기'}
                   </Badge>
                   <Badge variant={order.has_after_proof ? 'success' : 'outline'}>
-                    수선 후 {order.has_after_proof ? '완료' : '대기'}
+                    배송 증빙 {order.has_after_proof ? '완료' : '대기'}
                   </Badge>
                 </div>
               </CardContent>

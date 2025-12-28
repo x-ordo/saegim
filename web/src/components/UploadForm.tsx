@@ -35,8 +35,8 @@ const normalizeError = (msg: string) => {
 };
 
 const PROOF_TYPE_LABELS: Record<ProofType, string> = {
-  BEFORE: '수선 전',
-  AFTER: '수선 후',
+  BEFORE: '상품 사진',
+  AFTER: '배송 증빙',
   RECEIPT: '영수증',
   DAMAGE: '손상 부위',
   OTHER: '기타',
@@ -266,7 +266,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
             disabled={hasBeforeProof || status === 'uploading'}
             className="relative"
           >
-            수선 전
+            상품 사진
             {hasBeforeProof && (
               <Badge variant="success" className="absolute -right-1 -top-1 text-xs">완료</Badge>
             )}
@@ -278,7 +278,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
             disabled={hasAfterProof || status === 'uploading'}
             className="relative"
           >
-            수선 후
+            배송 증빙
             {hasAfterProof && (
               <Badge variant="success" className="absolute -right-1 -top-1 text-xs">완료</Badge>
             )}
@@ -356,7 +356,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
           <CardContent className="pt-6 text-center">
             <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
             <p className="text-lg font-semibold text-green-800 dark:text-green-200">모든 증빙 완료</p>
-            <p className="mt-1 text-sm text-green-600 dark:text-green-400">수선 전/후 사진이 모두 업로드되었습니다.</p>
+            <p className="mt-1 text-sm text-green-600 dark:text-green-400">배송 증빙 사진이 모두 업로드되었습니다.</p>
             <Button className="mt-4" asChild>
               <a href={`/p/${token}`}>결과 확인하기</a>
             </Button>
@@ -510,7 +510,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
       )}
 
       <p className="text-center text-sm text-muted-foreground">
-        팁: 제품 전체가 잘 보이도록 촬영해주세요. 수선 전/후 비교가 명확해집니다.
+        팁: 상품 전체가 잘 보이도록 촬영해주세요. 배송 증빙이 명확해집니다.
       </p>
     </div>
   );
