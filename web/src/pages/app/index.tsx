@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../components/AdminLayout';
 import { listOrders, Order } from '../../services/adminApi';
 import { useAdminToken } from '../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function Dashboard() {
   const { isLoaded, isSignedIn, getAdminToken } = useAdminToken();

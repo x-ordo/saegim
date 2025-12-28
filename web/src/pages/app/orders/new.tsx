@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { createOrder, listOrganizations, Organization } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function NewOrderPage() {
   const router = useRouter();

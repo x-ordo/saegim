@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { getOrgSettings, updateOrgSettings, Organization } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 const isOrgAdmin = (role?: string | null) => {
   const r = (role || '').toLowerCase();

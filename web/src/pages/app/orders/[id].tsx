@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { getOrderDetail, issueToken, resendNotify, OrderDetail } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 // v1: QR 이미지는 외부 생성 API를 사용 (의존성 0)
 // v2: 서버/클라이언트 내장 QR 생성으로 교체 권장

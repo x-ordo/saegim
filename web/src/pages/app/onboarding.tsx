@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { OrganizationSwitcher, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../components/AdminLayout';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function Onboarding() {
   const router = useRouter();

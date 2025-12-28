@@ -1,4 +1,8 @@
 import { SignIn } from '@clerk/nextjs';
+import { GetServerSideProps } from 'next';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function Page() {
   return (

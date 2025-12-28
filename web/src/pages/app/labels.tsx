@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../components/AdminLayout';
 import { getLabels, Label, listOrders } from '../../services/adminApi';
 import { useAdminToken } from '../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 const qrImg = (url: string) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;

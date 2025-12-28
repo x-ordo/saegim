@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
 import { listOrganizations, Organization } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function OrgsPage() {
   const { isLoaded, isSignedIn, getAdminToken } = useAdminToken();
