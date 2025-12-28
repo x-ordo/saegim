@@ -3,6 +3,9 @@ import { useAuth } from '@clerk/nextjs';
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export function useAdminToken() {
+  // Always call useAuth unconditionally to follow React hooks rules
+  const auth = useAuth();
+
   // If Clerk is not configured, return mock values for local development
   if (!clerkPubKey) {
     return {
@@ -16,7 +19,7 @@ export function useAdminToken() {
     };
   }
 
-  const { isLoaded, isSignedIn, getToken, orgId, orgRole } = useAuth();
+  const { isLoaded, isSignedIn, getToken, orgId, orgRole } = auth;
 
   const getAdminToken = async (): Promise<string> => {
     if (!isLoaded) throw new Error('Auth not loaded');
