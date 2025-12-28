@@ -13,23 +13,33 @@ from fastapi.testclient import TestClient
 os.environ["APP_ENV"] = "test"
 os.environ["POSTGRES_DB"] = "prooflink_test"
 os.environ["JWT_SECRET"] = "test-jwt-secret-key-at-least-32-chars!"
-os.environ["ENCRYPTION_KEY"] = "test-encryption-key-32-bytes!!!"
+os.environ["ENCRYPTION_KEY"] = "12345678901234567890123456789012"  # Exactly 32 bytes
 os.environ["ADMIN_API_KEY"] = "test-admin-api-key-secure"
 os.environ["MESSAGING_PROVIDER"] = "mock"
 
 from src.api.main import app
 from src.core.database import Base, get_db
-from src.models import Organization, Order, QRToken, Proof, Notification
+from src.models import (
+    Organization,
+    Order,
+    QRToken,
+    Proof,
+    Notification,
+    Courier,
+    CourierSession,
+    Product,
+    ProductCategory,
+)
 
 
-# Test database URL (use SQLite for speed)
-TEST_DATABASE_URL = "sqlite:///./test.db"
+# Test database URL (use PostgreSQL to support JSONB columns)
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql://prooflink:prooflink@localhost:5432/prooflink_test"
+)
 
 # Create test engine
-engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+engine = create_engine(TEST_DATABASE_URL)
 
 # Create test session factory
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -54,9 +64,6 @@ def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
-    # Clean up test database file
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")
 
 
 @pytest.fixture(scope="function")
@@ -118,7 +125,7 @@ def test_token(db: Session, test_order: Order) -> QRToken:
     token = QRToken(
         order_id=test_order.id,
         token=secrets.token_urlsafe(12),
-        is_active=True,
+        is_valid=True,
     )
     db.add(token)
     db.commit()
