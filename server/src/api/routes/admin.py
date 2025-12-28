@@ -119,8 +119,8 @@ def list_orders(
     status: Optional[str] = Query(default=None),
     day: Optional[str] = Query(default=None, description="YYYY-MM-DD (Asia/Seoul)"),
     today: bool = Query(default=False),
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -266,8 +266,8 @@ def delete_order(
 
 @router.get("/dashboard", response_model=DashboardOut)
 def get_dashboard(
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
@@ -285,10 +285,10 @@ def get_dashboard(
 def list_notifications(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=100),
-    status: str | None = Query(default=None, description="SENT, FAILED, PENDING"),
-    channel: str | None = Query(default=None, description="ALIMTALK, SMS"),
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    status: Optional[str] = Query(default=None, description="SENT, FAILED, PENDING"),
+    channel: Optional[str] = Query(default=None, description="ALIMTALK, SMS"),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
@@ -308,8 +308,8 @@ def list_notifications(
 
 @router.get("/notifications/stats", response_model=NotificationStats)
 def get_notification_stats(
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
@@ -344,9 +344,9 @@ def bulk_generate_tokens(
 
 @router.get("/orders/export/csv")
 def export_orders_csv(
-    status: str | None = Query(default=None),
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    status: Optional[str] = Query(default=None),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
@@ -375,8 +375,8 @@ def export_orders_csv(
 
 @router.get("/analytics", response_model=AnalyticsOut)
 def get_analytics(
-    start_date: date | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-    end_date: date | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):

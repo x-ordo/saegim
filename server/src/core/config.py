@@ -92,14 +92,14 @@ class Settings(BaseSettings):
     LOCAL_UPLOAD_DIR: str = "data/uploads"
 
     # S3 Configuration (when STORAGE_DRIVER=s3)
-    S3_BUCKET: str | None = None
+    S3_BUCKET: Optional[str] = None
     S3_REGION: str = "ap-northeast-2"
-    S3_ACCESS_KEY: str | None = None
-    S3_SECRET_KEY: str | None = None
-    S3_ENDPOINT_URL: str | None = None  # For S3-compatible services (MinIO, etc.)
+    S3_ACCESS_KEY: Optional[str] = None
+    S3_SECRET_KEY: Optional[str] = None
+    S3_ENDPOINT_URL: Optional[str] = None  # For S3-compatible services (MinIO, etc.)
     S3_PRESIGNED_URL_EXPIRES: int = 300  # 5 minutes
     S3_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
-    S3_CDN_URL: str | None = None  # Optional CDN URL for serving files
+    S3_CDN_URL: Optional[str] = None  # Optional CDN URL for serving files
 
     # Token
     TOKEN_LENGTH: int = 12
@@ -150,7 +150,7 @@ class Settings(BaseSettings):
     FALLBACK_SMS_ENABLED: bool = True
 
     # Error Tracking (Sentry)
-    SENTRY_DSN: str | None = None
+    SENTRY_DSN: Optional[str] = None
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1  # 10% of transactions
     SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
 

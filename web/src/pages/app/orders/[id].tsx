@@ -464,7 +464,7 @@ export default function OrderDetailPage() {
                 value={editForm.context || ''}
                 onChange={(e) => setEditForm({ ...editForm, context: e.target.value })}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}
-                placeholder="예: 근조화환, 가죽가방 수선"
+                placeholder="예: 근조화환, 축하화환"
               />
             </div>
 
