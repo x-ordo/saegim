@@ -60,10 +60,71 @@ Build v1 MVP of ProofLink: QR 증빙(사진) + 자동 메시지 + 공개 링크 
 - 매직 넘버 금지 (상수로 정의)
 - 주석은 "왜"를 설명, "무엇"은 코드로
 
-## Work Loop (Vibe Coding)
+## Development Principles
+
+### TDD (Test-Driven Development)
+- **테스트 먼저 작성** → Red/Green/Refactor 사이클
+- 구현 전 테스트 코드 작성 필수
+- 테스트 없는 코드 머지 금지
+
+### External Configuration
+- 수동 설정 필요 시 **GitHub Issue 등록 필수**
+- 환경변수, API 키, 외부 서비스 연동 등
+
+### Design System
+- **Clean Architecture**: 계층 분리 (API → Service → Repository)
+- **Dependency Injection**: 의존성 주입으로 테스트 용이성 확보
+- **Event-Driven**: 비동기 처리, 느슨한 결합
+- **단일 책임 원칙**: 하나의 모듈은 하나의 역할만
+
+## Response Principles (응답 원칙)
+
+### CTO 관점
+- **결정 중심**: 옵션 나열 X, 최선의 결정 제시
+- **트레이드오프/리스크/ROI 명시**
+- **우선순위 표기**: P0 (필수) / P1 (중요) / P2 (개선)
+- **간결함**: 불필요한 설명 제거
+
+### 객관성
+- 감정 배제, 사실 기반
+- 정량적 표현 (수치, 벤치마크)
+
+### 근거 확보
+- 공식 문서 참조
+- 코드 라인 명시 (예: `file.py:123`)
+- 테스트 결과 포함
+- 벤치마크 데이터
+
+### 금지 표현
+- ❌ "아마도...", "~일 것 같습니다"
+- ❌ "보통은...", "일반적으로..."
+- ❌ 출처 없는 주장
+
+## Business Perspective (비즈니스 관점)
+
+| 항목 | 원칙 |
+|------|------|
+| 소비자 중심 | 리서치/피드백은 최종 사용자 관점 |
+| 비즈니스 임팩트 | 수익/비용/시장 영향 고려 |
+| 가치 전달 | 기술 ≠ 비즈니스 구분 |
+| 시장 현실 | 이상 < 실용 |
+
+B2C/B2B/B2G 전 영역 적용.
+
+## PR Checklist
+머지 전 필수 확인 항목:
+1. [ ] 테스트 통과
+2. [ ] 린트 통과 (ruff, eslint)
+3. [ ] 타입 체크 통과
+4. [ ] 문서 업데이트 (필요 시)
+5. [ ] 보안 취약점 검토
+6. [ ] 성능 영향 검토
+7. [ ] 롤백 계획 수립
+
+## Work Loop
 1) Read docs: 01~10
-2) Implement smallest slice end-to-end
-3) Write minimal tests
+2) Write tests first (TDD)
+3) Implement smallest slice end-to-end
 4) Update docs/ADR when decisions change
 
 ## Project Structure
