@@ -1,6 +1,21 @@
 import { useAuth } from '@clerk/nextjs';
 
+const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export function useAdminToken() {
+  // If Clerk is not configured, return mock values for local development
+  if (!clerkPubKey) {
+    return {
+      isLoaded: true,
+      isSignedIn: false,
+      orgId: null,
+      orgRole: null,
+      getAdminToken: async (): Promise<string> => {
+        throw new Error('Clerk not configured - please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
+      },
+    };
+  }
+
   const { isLoaded, isSignedIn, getToken, orgId, orgRole } = useAuth();
 
   const getAdminToken = async (): Promise<string> => {

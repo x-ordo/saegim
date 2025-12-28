@@ -12,6 +12,16 @@ import { useRouter } from 'next/router';
 import { getMe, Me } from '../services/adminApi';
 import { useAdminToken } from '../services/useAdminToken';
 
+const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+// Hook that returns mock auth values when Clerk is not configured
+function useAuthSafe() {
+  if (!clerkPubKey) {
+    return { isLoaded: true, isSignedIn: false, orgId: null };
+  }
+  return useAuth();
+}
+
 export const AdminLayout = ({
   title,
   children,
@@ -22,7 +32,7 @@ export const AdminLayout = ({
   allowNoOrg?: boolean;
 }) => {
   const router = useRouter();
-  const { isLoaded, isSignedIn, orgId } = useAuth();
+  const { isLoaded, isSignedIn, orgId } = useAuthSafe();
   const { getAdminToken } = useAdminToken();
 
   const [me, setMe] = useState<Me | null>(null);
@@ -95,18 +105,24 @@ export const AdminLayout = ({
           </div>
 
           <div className="actions">
-            <SignedOut>
-              <SignInButton>
-                <button className="btn">로그인</button>
-              </SignInButton>
-            </SignedOut>
+            {clerkPubKey ? (
+              <>
+                <SignedOut>
+                  <SignInButton>
+                    <button className="btn">로그인</button>
+                  </SignInButton>
+                </SignedOut>
 
-            <SignedIn>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <OrganizationSwitcher />
-                <UserButton />
-              </div>
-            </SignedIn>
+                <SignedIn>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <OrganizationSwitcher />
+                    <UserButton />
+                  </div>
+                </SignedIn>
+              </>
+            ) : (
+              <span className="muted" style={{ fontSize: 12 }}>Clerk 미설정</span>
+            )}
           </div>
         </div>
 

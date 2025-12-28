@@ -40,7 +40,7 @@ export default function ProductsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('__all__');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function ProductsPage() {
       const token = await getAdminToken();
       const [productsRes, categoriesRes] = await Promise.all([
         listProducts(token, {
-          category_id: categoryFilter ? Number(categoryFilter) : undefined,
+          category_id: categoryFilter && categoryFilter !== '__all__' ? Number(categoryFilter) : undefined,
           q: searchQuery || undefined,
           page,
           page_size: pageSize,
@@ -122,7 +122,7 @@ export default function ProductsPage() {
               <SelectValue placeholder="전체 카테고리" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">전체 카테고리</SelectItem>
+              <SelectItem value="__all__">전체 카테고리</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={String(cat.id)}>
                   {cat.name}
