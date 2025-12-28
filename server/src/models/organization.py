@@ -58,3 +58,6 @@ class Organization(Base):
 
     # Relationships
     orders = relationship("Order", back_populates="organization")
+    products = relationship("Product", back_populates="organization")
+    product_categories = relationship("ProductCategory", back_populates="organization")
+    couriers = relationship("Courier", back_populates="organization")

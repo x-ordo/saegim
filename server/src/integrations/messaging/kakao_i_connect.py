@@ -23,7 +23,7 @@ class KakaoIConnectProvider(MessagingProvider):
 
     name = "kakao_i_connect"
 
-    def __init__(self, base_url: str | None, access_token: str | None, *, timeout_s: float = 10.0):
+    def __init__(self, base_url: Optional[str], access_token: Optional[str], *, timeout_s: float = 10.0):
         if not base_url or not access_token:
             raise ConfigMissingError("Kakao i Connect config missing", details="KAKAOI_BASE_URL or KAKAOI_ACCESS_TOKEN")
         self.base_url = base_url.rstrip("/")

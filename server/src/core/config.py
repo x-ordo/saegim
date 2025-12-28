@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -58,19 +59,19 @@ class Settings(BaseSettings):
     ALIMTALK_TEMPLATE_RECIPIENT: str = "{brand}\\n인증: {url}"
 
     # Kakao i Connect Message (AlimTalk) - optional
-    KAKAOI_BASE_URL: str | None = None  # e.g. https://api.kakaoi.ai (your tenant base url)
-    KAKAOI_ACCESS_TOKEN: str | None = None  # Bearer token
-    KAKAO_SENDER_KEY: str | None = None  # senderKey (plusfriend)
-    KAKAO_TEMPLATE_PROOF_DONE: str | None = None  # template_code
-    KAKAO_SENDER_NO: str | None = None  # optional: sender_no (registered)
-    KAKAO_CID: str | None = None  # optional client id for tracing (provider-specific)
+    KAKAOI_BASE_URL: Optional[str] = None  # e.g. https://api.kakaoi.ai (your tenant base url)
+    KAKAOI_ACCESS_TOKEN: Optional[str] = None  # Bearer token
+    KAKAO_SENDER_KEY: Optional[str] = None  # senderKey (plusfriend)
+    KAKAO_TEMPLATE_PROOF_DONE: Optional[str] = None  # template_code
+    KAKAO_SENDER_NO: Optional[str] = None  # optional: sender_no (registered)
+    KAKAO_CID: Optional[str] = None  # optional client id for tracing (provider-specific)
 
     # NAVER Cloud SENS (SMS) - optional
     SENS_BASE_URL: str = "https://sens.apigw.ntruss.com"
-    SENS_ACCESS_KEY: str | None = None
-    SENS_SECRET_KEY: str | None = None
-    SENS_SMS_SERVICE_ID: str | None = None
-    SENS_SMS_FROM: str | None = None  # registered 발신번호 (digits only)
+    SENS_ACCESS_KEY: Optional[str] = None
+    SENS_SECRET_KEY: Optional[str] = None
+    SENS_SMS_SERVICE_ID: Optional[str] = None
+    SENS_SMS_FROM: Optional[str] = None  # registered 발신번호 (digits only)
     SENS_SMS_CONTENT_TYPE: str = "COMM"  # COMM | AD
     SENS_SMS_COUNTRY_CODE: str = "82"
 
