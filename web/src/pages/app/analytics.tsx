@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../components/AdminLayout';
 import { getAnalytics, Analytics } from '../../services/adminApi';
 import { useAdminToken } from '../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 type DateFilter = 'week' | 'month' | 'quarter' | 'custom';
 

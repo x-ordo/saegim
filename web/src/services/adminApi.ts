@@ -222,6 +222,38 @@ export const getOrderDetail = async (token: string, orderId: number): Promise<Or
   return res.json();
 };
 
+export type OrderUpdate = {
+  order_number?: string;
+  context?: string | null;
+  sender_name?: string;
+  sender_phone?: string;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  status?: string;
+};
+
+export const updateOrder = async (
+  token: string,
+  orderId: number,
+  payload: OrderUpdate
+): Promise<Order> => {
+  const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}`, {
+    method: 'PUT',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const deleteOrder = async (token: string, orderId: number): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+};
+
 export const issueToken = async (
   token: string,
   orderId: number,
@@ -541,4 +573,177 @@ export const deleteCourier = async (token: string, courierId: number): Promise<v
     headers: headers(token),
   });
   if (!res.ok) throw new Error(await res.text());
+};
+
+// ---------------------------
+// Analytics API
+// ---------------------------
+export type Analytics = {
+  start_date: string;
+  end_date: string;
+  total_orders: number;
+  total_proofs: number;
+  proof_completion_rate: number;
+  notification_success_rate: number;
+  total_notifications: number;
+  daily_trends: Array<{
+    date: string;
+    orders: number;
+    proofs: number;
+  }>;
+  channel_breakdown: {
+    alimtalk_sent: number;
+    alimtalk_failed: number;
+    sms_sent: number;
+    sms_failed: number;
+  };
+  proof_timing: {
+    avg_minutes: number | null;
+    median_minutes: number | null;
+    min_minutes: number | null;
+    max_minutes: number | null;
+  };
+};
+
+export const getAnalytics = async (
+  token: string,
+  params: { start_date: string; end_date: string }
+): Promise<Analytics> => {
+  const qs = new URLSearchParams();
+  qs.set('start_date', params.start_date);
+  qs.set('end_date', params.end_date);
+  const url = `${API_BASE_URL}/admin/analytics?${qs.toString()}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+// ---------------------------
+// Notifications API
+// ---------------------------
+export type NotificationListItem = {
+  id: number;
+  order_id: number;
+  order_number: string;
+  type: string;
+  channel: string;
+  status: string;
+  phone_hash: string;
+  provider_request_id?: string | null;
+  message_url?: string | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  sent_at?: string | null;
+};
+
+export type NotificationStats = {
+  total: number;
+  success: number;
+  sent: number;
+  failed: number;
+  pending: number;
+  by_channel: {
+    alimtalk: { sent: number; failed: number };
+    sms: { sent: number; failed: number };
+  };
+};
+
+export const listNotifications = async (
+  token: string,
+  params?: {
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    channel?: string;
+    limit?: number;
+    page?: number;
+  }
+): Promise<{ items: NotificationListItem[]; total: number; total_pages: number }> => {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.set('start_date', params.start_date);
+  if (params?.end_date) qs.set('end_date', params.end_date);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.channel) qs.set('channel', params.channel);
+  const limit = params?.limit ?? 50;
+  qs.set('limit', String(limit));
+  if (params?.page && params.page > 1) {
+    qs.set('offset', String((params.page - 1) * limit));
+  }
+  const url = `${API_BASE_URL}/admin/notifications${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  // Calculate total_pages from total and limit
+  const total_pages = Math.ceil((data.total || 0) / limit);
+  return { ...data, total_pages };
+};
+
+export const getNotificationStats = async (
+  token: string,
+  params?: { start_date?: string; end_date?: string }
+): Promise<NotificationStats> => {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.set('start_date', params.start_date);
+  if (params?.end_date) qs.set('end_date', params.end_date);
+  const url = `${API_BASE_URL}/admin/notifications/stats${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+// ---------------------------
+// Reminders API
+// ---------------------------
+export type PendingReminders = {
+  orders: Array<{
+    order_id: number;
+    order_number: string;
+    context?: string | null;
+    sender_name: string;
+    recipient_name?: string | null;
+    created_at: string;
+    hours_since_token: number;
+    reminder_count: number;
+  }>;
+  total: number;
+};
+
+export type ReminderResponse = {
+  total: number;
+  sent_count: number;
+  skipped_count: number;
+  failed_count: number;
+  order_ids: number[];
+  results: Array<{
+    order_id: number;
+    order_number: string;
+    status: 'sent' | 'skipped' | 'failed';
+    error?: string | null;
+  }>;
+};
+
+export const getPendingReminders = async (
+  token: string,
+  params?: { hours_since_token?: number }
+): Promise<PendingReminders> => {
+  const qs = new URLSearchParams();
+  if (params?.hours_since_token) qs.set('hours_since_token', String(params.hours_since_token));
+  const url = `${API_BASE_URL}/admin/reminders/pending${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const sendReminders = async (
+  token: string,
+  params: { order_ids?: number[]; hours_since_token?: number; max_reminders?: number }
+): Promise<ReminderResponse> => {
+  const res = await fetch(`${API_BASE_URL}/admin/reminders/send`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 };

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
 import {
   listNotifications,
@@ -9,6 +10,9 @@ import {
   NotificationStats,
 } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
+
+// Force SSR to ensure ClerkProvider is available
+export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 type DateFilter = 'today' | 'yesterday' | 'week' | 'all';
 
