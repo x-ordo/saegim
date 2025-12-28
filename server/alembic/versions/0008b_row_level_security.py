@@ -1,7 +1,7 @@
 """Add Row Level Security for multi-tenant isolation.
 
-Revision ID: 0008
-Revises: 0007_order_asset_meta
+Revision ID: 0008b
+Revises: 0008
 Create Date: 2024-12-22
 
 This migration adds PostgreSQL Row Level Security (RLS) policies
@@ -24,8 +24,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "0008"
-down_revision = "0007"
+revision = "0008b"
+down_revision = "0008"
 branch_labels = None
 depends_on = None
 
