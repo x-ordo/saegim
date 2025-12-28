@@ -244,7 +244,7 @@ class DriverService:
         # Get proofs
         proofs = []
         for proof in order.proofs:
-            file_url = f"{settings.API_BASE_URL}/uploads/{proof.file_path}"
+            file_url = f"{settings.APP_BASE_URL}/uploads/{proof.file_path}"
             proofs.append(ProofItem(
                 id=proof.id,
                 proof_type=proof.proof_type.value,
@@ -305,7 +305,7 @@ class DriverService:
         items = []
         for proof in proofs:
             order = proof.order
-            file_url = f"{settings.API_BASE_URL}/uploads/{proof.file_path}"
+            file_url = f"{settings.APP_BASE_URL}/uploads/{proof.file_path}"
             items.append(UploadHistoryItem(
                 order_id=order.id,
                 order_number=order.order_number,
