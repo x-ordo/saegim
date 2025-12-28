@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, HTTPException, UploadFile, File
 import csv
 import io
@@ -21,7 +22,7 @@ from src.models.organization import Organization
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def _is_org_admin(role: str | None) -> bool:
+def _is_org_admin(role: Optional[str]) -> bool:
     if not role:
         return False
     r = role.strip().lower()
@@ -101,10 +102,10 @@ def create_organization(
 
 @router.get("/orders", response_model=list[OrderOut])
 def list_orders(
-    organization_id: int | None = Query(default=None),
-    q: str | None = Query(default=None),
-    status: str | None = Query(default=None),
-    day: str | None = Query(default=None, description="YYYY-MM-DD (Asia/Seoul)"),
+    organization_id: Optional[int] = Query(default=None),
+    q: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    day: Optional[str] = Query(default=None, description="YYYY-MM-DD (Asia/Seoul)"),
     today: bool = Query(default=False),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),

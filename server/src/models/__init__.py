@@ -6,6 +6,8 @@ from .qr_token import QRToken
 from .proof import Proof, ProofType
 from .notification import Notification, NotificationType, NotificationChannel, NotificationStatus
 from .short_link import ShortLink
+from .product import Product, ProductCategory
+from .courier import Courier, CourierSession
 
 __all__ = [
     "Base",
@@ -21,4 +23,8 @@ __all__ = [
     "NotificationChannel",
     "NotificationStatus",
     "ShortLink",
+    "Product",
+    "ProductCategory",
+    "Courier",
+    "CourierSession",
 ]

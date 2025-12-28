@@ -266,3 +266,279 @@ export const getLabels = async (
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 };
+
+// ---------------------------
+// Products API
+// ---------------------------
+export type ProductCategory = {
+  id: number;
+  organization_id: number;
+  name: string;
+  parent_id?: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+export type Product = {
+  id: number;
+  organization_id: number;
+  category_id?: number | null;
+  name: string;
+  description?: string | null;
+  price?: number | null;
+  sku?: string | null;
+  image_url?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+export type ProductListResponse = {
+  items: Product[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export const listProductCategories = async (
+  token: string,
+  params?: { parent_id?: number }
+): Promise<ProductCategory[]> => {
+  const qs = new URLSearchParams();
+  if (params?.parent_id !== undefined) qs.set('parent_id', String(params.parent_id));
+  const url = `${API_BASE_URL}/admin/products/categories${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const createProductCategory = async (
+  token: string,
+  payload: { name: string; parent_id?: number | null; sort_order?: number }
+): Promise<ProductCategory> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/categories`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const updateProductCategory = async (
+  token: string,
+  categoryId: number,
+  payload: { name?: string; parent_id?: number | null; sort_order?: number }
+): Promise<ProductCategory> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/categories/${categoryId}`, {
+    method: 'PUT',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const deleteProductCategory = async (token: string, categoryId: number): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/categories/${categoryId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+};
+
+export const listProducts = async (
+  token: string,
+  params?: {
+    category_id?: number;
+    is_active?: boolean;
+    q?: string;
+    page?: number;
+    page_size?: number;
+  }
+): Promise<ProductListResponse> => {
+  const qs = new URLSearchParams();
+  if (params?.category_id !== undefined) qs.set('category_id', String(params.category_id));
+  if (params?.is_active !== undefined) qs.set('is_active', String(params.is_active));
+  if (params?.q) qs.set('q', params.q);
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.page_size) qs.set('page_size', String(params.page_size));
+  const url = `${API_BASE_URL}/admin/products${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const getProduct = async (token: string, productId: number): Promise<Product> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const createProduct = async (
+  token: string,
+  payload: {
+    name: string;
+    description?: string | null;
+    price?: number | null;
+    sku?: string | null;
+    category_id?: number | null;
+    image_url?: string | null;
+    is_active?: boolean;
+  }
+): Promise<Product> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const updateProduct = async (
+  token: string,
+  productId: number,
+  payload: {
+    name?: string;
+    description?: string | null;
+    price?: number | null;
+    sku?: string | null;
+    category_id?: number | null;
+    image_url?: string | null;
+    is_active?: boolean;
+  }
+): Promise<Product> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+    method: 'PUT',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const deleteProduct = async (token: string, productId: number): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+};
+
+// ---------------------------
+// Couriers API
+// ---------------------------
+export type Courier = {
+  id: number;
+  organization_id: number;
+  name: string;
+  phone_masked?: string | null;
+  vehicle_number?: string | null;
+  notes?: string | null;
+  has_pin: boolean;
+  clerk_user_id?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+export type CourierListResponse = {
+  items: Courier[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export const listCouriers = async (
+  token: string,
+  params?: {
+    is_active?: boolean;
+    q?: string;
+    page?: number;
+    page_size?: number;
+  }
+): Promise<CourierListResponse> => {
+  const qs = new URLSearchParams();
+  if (params?.is_active !== undefined) qs.set('is_active', String(params.is_active));
+  if (params?.q) qs.set('q', params.q);
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.page_size) qs.set('page_size', String(params.page_size));
+  const url = `${API_BASE_URL}/admin/couriers${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const getCourier = async (token: string, courierId: number): Promise<Courier> => {
+  const res = await fetch(`${API_BASE_URL}/admin/couriers/${courierId}`, {
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const createCourier = async (
+  token: string,
+  payload: {
+    name: string;
+    phone?: string | null;
+    vehicle_number?: string | null;
+    notes?: string | null;
+    pin?: string | null;
+    is_active?: boolean;
+  }
+): Promise<Courier> => {
+  const res = await fetch(`${API_BASE_URL}/admin/couriers`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const updateCourier = async (
+  token: string,
+  courierId: number,
+  payload: {
+    name?: string;
+    phone?: string | null;
+    vehicle_number?: string | null;
+    notes?: string | null;
+    is_active?: boolean;
+  }
+): Promise<Courier> => {
+  const res = await fetch(`${API_BASE_URL}/admin/couriers/${courierId}`, {
+    method: 'PUT',
+    headers: headers(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const updateCourierPin = async (
+  token: string,
+  courierId: number,
+  pin: string
+): Promise<Courier> => {
+  const res = await fetch(`${API_BASE_URL}/admin/couriers/${courierId}/pin`, {
+    method: 'PUT',
+    headers: headers(token),
+    body: JSON.stringify({ pin }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const deleteCourier = async (token: string, courierId: number): Promise<void> => {
+  const res = await fetch(`${API_BASE_URL}/admin/couriers/${courierId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(await res.text());
+};

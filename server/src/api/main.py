@@ -9,7 +9,7 @@ import os
 
 from src.core.config import settings
 from src.utils.rate_limiter import limiter
-from src.api.routes import public_router, admin_router
+from src.api.routes import public_router, admin_router, products_router, couriers_router, driver_router
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +53,9 @@ API_PREFIX = "/api/v1"
 # Include routers
 app.include_router(public_router, prefix=API_PREFIX)
 app.include_router(admin_router, prefix=API_PREFIX)
+app.include_router(products_router, prefix=API_PREFIX)
+app.include_router(couriers_router, prefix=API_PREFIX)
+app.include_router(driver_router, prefix=API_PREFIX)
 
 
 @app.get("/")
