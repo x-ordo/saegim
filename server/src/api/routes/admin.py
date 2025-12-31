@@ -6,6 +6,13 @@ import csv
 import io
 from sqlalchemy.orm import Session
 
+# Excel support (optional - gracefully degrade if not installed)
+try:
+    from openpyxl import load_workbook
+    EXCEL_SUPPORTED = True
+except ImportError:
+    EXCEL_SUPPORTED = False
+
 from src.api.deps import AuthContext, get_auth_context, get_db
 from src.services.admin_service import AdminService
 from src.schemas.admin import (
@@ -145,6 +152,7 @@ def list_orders(
 def import_orders_csv(
     file: UploadFile = File(...),
     strict: bool = Query(default=False),
+    auto_generate_tokens: bool = Query(default=True, description="Automatically generate QR tokens for imported orders"),
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_auth_context),
 ):
@@ -157,6 +165,9 @@ def import_orders_csv(
       - sender_phone (or buyer_phone)
       - recipient_name (or receiver_name) (optional)
       - recipient_phone (or receiver_phone) (optional)
+
+    When auto_generate_tokens=True (default), QR tokens are automatically
+    generated for all successfully imported orders.
     """
 
     if ctx.organization_id is None:
@@ -179,11 +190,126 @@ def import_orders_csv(
         nr = {str(k).strip().lower(): (v.strip() if isinstance(v, str) else v) for k, v in (r or {}).items()}
         rows.append(nr)
 
-    created_ids, errors = AdminService(db).import_orders_csv(rows=rows, organization_id=ctx.organization_id, strict=strict)
+    svc = AdminService(db)
+    created_ids, errors = svc.import_orders_csv(rows=rows, organization_id=ctx.organization_id, strict=strict)
+
+    # Auto-generate tokens for imported orders
+    generated_tokens_count = 0
+    if auto_generate_tokens and created_ids:
+        token_result = svc.bulk_generate_tokens(
+            order_ids=created_ids,
+            scope_org_id=ctx.organization_id,
+            force=False,
+        )
+        generated_tokens_count = token_result.get("success_count", 0)
+
     return {
         "created_count": len(created_ids),
         "created_order_ids": created_ids,
         "errors": errors,
+        "generated_tokens_count": generated_tokens_count,
+    }
+
+
+def _parse_excel_to_rows(raw: bytes) -> list[dict]:
+    """Parse Excel file to list of normalized row dicts."""
+    if not EXCEL_SUPPORTED:
+        raise HTTPException(status_code=400, detail="EXCEL_NOT_SUPPORTED: openpyxl not installed")
+
+    wb = load_workbook(filename=io.BytesIO(raw), data_only=True)
+    ws = wb.active
+
+    # Get headers from first row
+    headers = []
+    for cell in ws[1]:
+        val = cell.value
+        if val:
+            headers.append(str(val).strip().lower())
+        else:
+            headers.append("")
+
+    # Parse data rows
+    rows: list[dict] = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not any(row):  # Skip empty rows
+            continue
+        row_dict = {}
+        for i, val in enumerate(row):
+            if i < len(headers) and headers[i]:
+                if val is not None:
+                    row_dict[headers[i]] = str(val).strip() if isinstance(val, str) else str(val)
+                else:
+                    row_dict[headers[i]] = ""
+        if row_dict:
+            rows.append(row_dict)
+
+    return rows
+
+
+@router.post("/orders/import", response_model=CsvImportOut)
+def import_orders(
+    file: UploadFile = File(...),
+    strict: bool = Query(default=False),
+    auto_generate_tokens: bool = Query(default=True, description="Automatically generate QR tokens"),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_auth_context),
+):
+    """Import orders from CSV or Excel file (auto-detected by extension).
+
+    Supported formats:
+      - CSV (.csv): UTF-8 or CP949 encoding
+      - Excel (.xlsx): First sheet is used
+
+    Expected columns (case-insensitive):
+      - order_number (or order_no) - Required
+      - context (optional)
+      - sender_name (or buyer_name) - Required
+      - sender_phone (or buyer_phone) - Required
+      - recipient_name (or receiver_name) (optional)
+      - recipient_phone (or receiver_phone) (optional)
+    """
+    if ctx.organization_id is None:
+        raise HTTPException(status_code=403, detail="ORG_REQUIRED")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="FILE_REQUIRED")
+
+    filename_lower = file.filename.lower()
+    raw = file.file.read()
+
+    # Parse based on file extension
+    if filename_lower.endswith(".xlsx"):
+        rows = _parse_excel_to_rows(raw)
+    elif filename_lower.endswith(".csv"):
+        try:
+            text = raw.decode("utf-8-sig")
+        except Exception:
+            text = raw.decode("cp949", errors="replace")
+        reader = csv.DictReader(io.StringIO(text))
+        rows = []
+        for r in reader:
+            nr = {str(k).strip().lower(): (v.strip() if isinstance(v, str) else v) for k, v in (r or {}).items()}
+            rows.append(nr)
+    else:
+        raise HTTPException(status_code=400, detail="UNSUPPORTED_FORMAT: Use .csv or .xlsx files")
+
+    svc = AdminService(db)
+    created_ids, errors = svc.import_orders_csv(rows=rows, organization_id=ctx.organization_id, strict=strict)
+
+    generated_tokens_count = 0
+    if auto_generate_tokens and created_ids:
+        token_result = svc.bulk_generate_tokens(
+            order_ids=created_ids,
+            scope_org_id=ctx.organization_id,
+            force=False,
+        )
+        generated_tokens_count = token_result.get("success_count", 0)
+
+    return {
+        "created_count": len(created_ids),
+        "created_order_ids": created_ids,
+        "errors": errors,
+        "generated_tokens_count": generated_tokens_count,
     }
 
 

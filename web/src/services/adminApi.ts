@@ -176,12 +176,39 @@ export type CsvImportResult = {
   created_count: number;
   created_order_ids: number[];
   errors: { row: number; message: string }[];
+  generated_tokens_count: number;
 };
 
-export const importOrdersCsv = async (token: string, file: File, strict?: boolean): Promise<CsvImportResult> => {
+/**
+ * Import orders from CSV file
+ * @deprecated Use importOrders() which supports both CSV and Excel
+ */
+export const importOrdersCsv = async (
+  token: string,
+  file: File,
+  options?: { strict?: boolean; autoGenerateTokens?: boolean }
+): Promise<CsvImportResult> => {
+  return importOrders(token, file, options);
+};
+
+/**
+ * Import orders from CSV or Excel file (auto-detected by extension)
+ */
+export const importOrders = async (
+  token: string,
+  file: File,
+  options?: { strict?: boolean; autoGenerateTokens?: boolean }
+): Promise<CsvImportResult> => {
   const form = new FormData();
   form.append('file', file);
-  const url = `${API_BASE_URL}/admin/orders/import/csv${strict ? '?strict=true' : ''}`;
+
+  const params = new URLSearchParams();
+  if (options?.strict) params.append('strict', 'true');
+  if (options?.autoGenerateTokens === false) params.append('auto_generate_tokens', 'false');
+
+  const queryString = params.toString();
+  const url = `${API_BASE_URL}/admin/orders/import${queryString ? '?' + queryString : ''}`;
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {

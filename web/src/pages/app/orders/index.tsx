@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { GetServerSideProps } from 'next';
 import { AdminLayout } from '../../../components/AdminLayout';
-import { importOrdersCsv, listOrders, listOrganizations, resendNotify, Order, Organization } from '../../../services/adminApi';
+import { importOrders, listOrders, listOrganizations, resendNotify, Order, Organization } from '../../../services/adminApi';
 import { useAdminToken } from '../../../services/useAdminToken';
 
 // Force SSR to ensure ClerkProvider is available
@@ -25,6 +25,7 @@ export default function OrdersPage() {
 
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [autoGenerateTokens, setAutoGenerateTokens] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedIds = Object.entries(selected)
@@ -68,25 +69,31 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
-  const onPickCsv = () => {
+  const onPickFile = () => {
     setImportMsg(null);
     fileInputRef.current?.click();
   };
 
-  const onCsvChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       setImporting(true);
       setImportMsg(null);
       const token = await getAdminToken();
-      const r = await importOrdersCsv(token, file);
-      const msg = `CSV 완료: ${r.created_count}건 생성${r.errors?.length ? `, 오류 ${r.errors.length}건` : ''}`;
-      setImportMsg(msg);
+      const r = await importOrders(token, file, { autoGenerateTokens });
 
-      if (r.errors?.length) {
-        console.warn('CSV import errors', r.errors);
+      const isExcel = file.name.toLowerCase().endsWith('.xlsx');
+      const fileType = isExcel ? 'Excel' : 'CSV';
+      const parts = [`${fileType} 완료: ${r.created_count}건 생성`];
+      if (r.generated_tokens_count > 0) {
+        parts.push(`QR ${r.generated_tokens_count}건 발급`);
       }
+      if (r.errors?.length) {
+        parts.push(`오류 ${r.errors.length}건`);
+        console.warn('Import errors', r.errors);
+      }
+      setImportMsg(parts.join(', '));
 
       if (r.created_order_ids?.length) {
         openLabels(r.created_order_ids);
@@ -204,8 +211,8 @@ export default function OrdersPage() {
                   오늘 라벨
                 </button>
 
-                <button className="btn secondary" onClick={onPickCsv} disabled={importing}>
-                  {importing ? 'CSV 가져오는 중…' : 'CSV 가져오기'}
+                <button className="btn secondary" onClick={onPickFile} disabled={importing}>
+                  {importing ? '가져오는 중…' : 'CSV/Excel'}
                 </button>
 
                 <button className="btn ghost" onClick={downloadSampleCsv} title="샘플 CSV 다운로드">
@@ -215,13 +222,22 @@ export default function OrdersPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="text/csv,.csv"
+                  accept="text/csv,.csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   style={{ display: 'none' }}
-                  onChange={onCsvChange}
+                  onChange={onFileChange}
                 />
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={autoGenerateTokens}
+                    onChange={(e) => setAutoGenerateTokens(e.target.checked)}
+                  />
+                  <span style={{ fontSize: 13 }}>QR 자동 발급</span>
+                </label>
               </div>
               <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-                CSV 컬럼: order_number, context, sender_name, sender_phone, recipient_name, recipient_phone
+                CSV/Excel 컬럼: order_number, context, sender_name, sender_phone, recipient_name, recipient_phone
               </div>
             </div>
 
