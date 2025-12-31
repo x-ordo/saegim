@@ -14,8 +14,10 @@ export const BeforeAfterSlider = ({
   afterLabel = '배송 완료',
 }: BeforeAfterSliderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
 
   // Update container width on resize
@@ -69,6 +71,44 @@ export const BeforeAfterSlider = ({
     setIsDragging(false);
   }, []);
 
+  // Keyboard navigation handler (WCAG 2.1.1 Keyboard)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const step = 5; // 5% per key press
+    const largeStep = 10; // 10% for page up/down
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        e.preventDefault();
+        setPosition((p) => Math.max(0, p - step));
+        break;
+      case 'ArrowRight':
+      case 'ArrowUp':
+        e.preventDefault();
+        setPosition((p) => Math.min(100, p + step));
+        break;
+      case 'Home':
+        e.preventDefault();
+        setPosition(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setPosition(100);
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        setPosition((p) => Math.max(0, p - largeStep));
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        setPosition((p) => Math.min(100, p + largeStep));
+        break;
+    }
+  }, []);
+
+  const handleFocus = useCallback(() => setIsFocused(true), []);
+  const handleBlur = useCallback(() => setIsFocused(false), []);
+
   // Global mouse events for smooth dragging
   useEffect(() => {
     if (isDragging) {
@@ -81,9 +121,26 @@ export const BeforeAfterSlider = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  // Generate position description for screen readers
+  const getPositionDescription = () => {
+    if (position <= 10) return `${beforeLabel} 거의 보이지 않음`;
+    if (position <= 40) return `${beforeLabel} 일부 표시`;
+    if (position <= 60) return `${beforeLabel}과 ${afterLabel} 절반씩 표시`;
+    if (position <= 90) return `${afterLabel} 일부 표시`;
+    return `${afterLabel} 거의 보이지 않음`;
+  };
+
   return (
     <div
       ref={containerRef}
+      role="slider"
+      aria-label={`${beforeLabel}과 ${afterLabel} 비교 슬라이더`}
+      aria-valuenow={Math.round(position)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuetext={`${Math.round(position)}% 위치, ${getPositionDescription()}`}
+      aria-orientation="horizontal"
+      tabIndex={0}
       style={{
         position: 'relative',
         width: '100%',
@@ -92,11 +149,16 @@ export const BeforeAfterSlider = ({
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
         touchAction: 'none',
+        outline: isFocused ? '2px solid hsl(var(--ring))' : 'none',
+        outlineOffset: 2,
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onKeyDown={handleKeyDown}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
       {/* After image (full width, background) */}
       <img
@@ -158,13 +220,15 @@ export const BeforeAfterSlider = ({
             height: 40,
             borderRadius: '50%',
             background: 'white',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            boxShadow: isFocused ? '0 0 0 3px hsl(var(--ring))' : '0 2px 8px rgba(0,0,0,0.2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            transition: 'box-shadow 0.2s',
           }}
+          aria-hidden="true"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M6 10L2 10M2 10L5 7M2 10L5 13" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M14 10L18 10M18 10L15 7M18 10L15 13" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -215,11 +279,12 @@ export const BeforeAfterSlider = ({
           padding: '4px 12px',
           borderRadius: 12,
           fontSize: 12,
-          opacity: isDragging ? 0 : 0.8,
+          opacity: isDragging || isFocused ? 0 : 0.8,
           transition: 'opacity 0.2s',
         }}
+        aria-hidden="true"
       >
-        좌우로 드래그하여 비교
+        드래그 또는 ← → 키로 비교
       </div>
     </div>
   );

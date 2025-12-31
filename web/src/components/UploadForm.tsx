@@ -228,9 +228,13 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
 
   if (status === 'success') {
     return (
-      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+      <Card
+        className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
+        role="status"
+        aria-live="polite"
+      >
         <CardContent className="pt-6 text-center">
-          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" aria-hidden="true" />
           <p className="text-lg font-semibold text-green-800 dark:text-green-200">업로드 완료</p>
           <p className="mt-1 text-sm text-green-600 dark:text-green-400">확인 페이지로 이동합니다…</p>
           <Button variant="outline" className="mt-4" asChild>
@@ -253,6 +257,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
         onChange={onFileChange}
         ref={fileInputRef}
         className="hidden"
+        aria-label="증빙 사진 파일 선택"
       />
 
       {/* Proof Type Selector */}
@@ -288,10 +293,10 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
 
       {/* v1.1: Compression progress */}
       {isCompressing && (
-        <Card>
+        <Card role="status" aria-live="polite">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
-              <ImageIcon className="h-5 w-5 animate-pulse text-primary" />
+              <ImageIcon className="h-5 w-5 animate-pulse text-primary" aria-hidden="true" />
               <div className="flex-1">
                 <p className="text-sm font-medium">이미지 최적화 중...</p>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -352,9 +357,9 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
       )}
 
       {allDone && !file && (
-        <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+        <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" role="status">
           <CardContent className="pt-6 text-center">
-            <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+            <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" aria-hidden="true" />
             <p className="text-lg font-semibold text-green-800 dark:text-green-200">모든 증빙 완료</p>
             <p className="mt-1 text-sm text-green-600 dark:text-green-400">배송 증빙 사진이 모두 업로드되었습니다.</p>
             <Button className="mt-4" asChild>
@@ -369,7 +374,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
         <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
           <CardContent className="py-3">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-              <WifiOff className="h-4 w-4" />
+              <WifiOff className="h-4 w-4" aria-hidden="true" />
               <span className="text-sm font-medium">오프라인 상태입니다</span>
             </div>
           </CardContent>
@@ -391,7 +396,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
         <div className="grid gap-2">
           {/* v1.0.1: Upload progress bar */}
           {status === 'uploading' && (
-            <Card className="mb-2">
+            <Card className="mb-2" role="status" aria-live="polite">
               <CardContent className="py-4">
                 <UploadProgress
                   percent={uploadProgress}
@@ -445,10 +450,10 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
       )}
 
       {status === 'error' && (
-        <Card className="border-destructive bg-destructive/10">
+        <Card className="border-destructive bg-destructive/10" role="alert" aria-live="assertive">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-destructive" aria-hidden="true" />
               <div className="flex-1">
                 <p className="font-semibold text-destructive">업로드 실패</p>
                 <p className="mt-1 text-sm text-destructive/80">{errorMessage}</p>
@@ -476,7 +481,7 @@ export const UploadForm = ({ token, hasBeforeProof, hasAfterProof }: UploadFormP
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Cloud className="h-4 w-4 text-blue-600" />
+                <Cloud className="h-4 w-4 text-blue-600" aria-hidden="true" />
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                   대기 중인 업로드: {pendingUploads.length}건
                 </span>

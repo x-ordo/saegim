@@ -7,9 +7,12 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
 
-from src.core.config import settings
+from src.core.config import settings, validate_settings_on_startup
 from src.utils.rate_limiter import limiter
 from src.api.routes import public_router, admin_router, products_router, couriers_router, driver_router
+
+# Validate settings at module load (before app creation)
+validate_settings_on_startup()
 
 # Sentry integration (must be before app creation)
 if settings.SENTRY_DSN:

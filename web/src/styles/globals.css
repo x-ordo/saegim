@@ -259,6 +259,10 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* WCAG 2.4.11: Focus Not Obscured - 고정 헤더/푸터에 가려지지 않도록 */
+    scroll-padding-top: 80px;
+    scroll-padding-bottom: 60px;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -280,6 +284,13 @@
   /* Focus Ring Style */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* WCAG 2.4.1: Skip Link - 본문 건너뛰기 링크 */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999]
+           focus:bg-background focus:text-foreground focus:px-4 focus:py-2
+           focus:rounded-md focus:shadow-lg focus:border focus:border-border;
   }
 }
 
@@ -665,4 +676,178 @@
   .print-avoid-break {
     page-break-inside: avoid;
   }
+}
+
+/* =============================================================================
+   ANT DESIGN INTEGRATION
+   - Tailwind와 Ant Design CSS 충돌 방지
+   - 디자인 토큰 통합
+   ============================================================================= */
+
+/* Ant Design Reset 충돌 방지 */
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-table,
+.ant-modal,
+.ant-form,
+.ant-upload {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* Ant Design 버튼 스타일 통합 */
+.ant-btn-primary {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+.ant-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.ant-btn-default {
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.ant-btn-default:hover {
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+/* Ant Design 입력 필드 스타일 통합 */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker {
+  border-color: hsl(var(--border)) !important;
+  border-radius: var(--radius) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+}
+
+/* Ant Design 테이블 스타일 통합 */
+.ant-table {
+  background: hsl(var(--card)) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+.ant-table-thead > tr > th {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-bottom-color: hsl(var(--border)) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: hsl(var(--border)) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: hsl(var(--accent)) !important;
+}
+
+/* Ant Design 모달 스타일 통합 */
+.ant-modal-content {
+  border-radius: var(--radius-lg) !important;
+  background: hsl(var(--card)) !important;
+}
+
+.ant-modal-header {
+  background: transparent !important;
+  border-bottom-color: hsl(var(--border)) !important;
+}
+
+.ant-modal-title {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Ant Design 업로드 스타일 통합 */
+.ant-upload-drag {
+  border-color: hsl(var(--border)) !important;
+  border-radius: var(--radius-lg) !important;
+  background: hsl(var(--muted) / 0.3) !important;
+}
+
+.ant-upload-drag:hover {
+  border-color: hsl(var(--primary)) !important;
+}
+
+/* Ant Design 폼 스타일 통합 */
+.ant-form-item-label > label {
+  color: hsl(var(--foreground)) !important;
+  font-size: var(--text-sm) !important;
+}
+
+.ant-form-item-explain-error {
+  color: hsl(var(--destructive)) !important;
+  font-size: var(--text-xs) !important;
+}
+
+/* Ant Design 카드 스타일 통합 */
+.ant-card {
+  border-color: hsl(var(--border)) !important;
+  border-radius: var(--radius-lg) !important;
+  background: hsl(var(--card)) !important;
+}
+
+/* Ant Design 메시지/알림 스타일 */
+.ant-message-notice-content {
+  border-radius: var(--radius) !important;
+}
+
+.ant-notification-notice {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Ant Design 드롭다운 스타일 */
+.ant-dropdown-menu {
+  border-radius: var(--radius) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Ant Design 페이지네이션 스타일 */
+.ant-pagination-item {
+  border-radius: var(--radius-sm) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.ant-pagination-item-active {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+.ant-pagination-item-active a {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+/* Ant Design 태그 스타일 */
+.ant-tag {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Dark Mode 대응 */
+.dark .ant-table {
+  background: hsl(var(--card)) !important;
+}
+
+.dark .ant-table-thead > tr > th {
+  background: hsl(var(--muted)) !important;
+}
+
+.dark .ant-modal-content {
+  background: hsl(var(--card)) !important;
+}
+
+.dark .ant-input,
+.dark .ant-select-selector {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
 }

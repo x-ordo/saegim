@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
-from typing import Optional
 import warnings
+import sys
 
 
 class Settings(BaseSettings):
@@ -158,6 +158,82 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
+    @model_validator(mode="after")
+    def validate_dependent_settings(self) -> "Settings":
+        """Validate settings that depend on other settings."""
+        errors: List[str] = []
+
+        # Auth validation: JWKS URL required if auth is enabled in production
+        if self.is_production and self.AUTH_ENABLED:
+            if not self.AUTH_JWKS_URL:
+                errors.append("AUTH_JWKS_URL is required when AUTH_ENABLED=true in production.")
+            if not self.AUTH_ISSUER:
+                errors.append("AUTH_ISSUER is required when AUTH_ENABLED=true in production.")
+
+        # S3 validation: required fields when using S3 storage
+        if self.STORAGE_DRIVER == "s3":
+            if not self.S3_BUCKET:
+                errors.append("S3_BUCKET is required when STORAGE_DRIVER=s3.")
+            if not self.S3_ACCESS_KEY:
+                errors.append("S3_ACCESS_KEY is required when STORAGE_DRIVER=s3.")
+            if not self.S3_SECRET_KEY:
+                errors.append("S3_SECRET_KEY is required when STORAGE_DRIVER=s3.")
+
+        # Messaging provider validation
+        if self.MESSAGING_PROVIDER == "kakao_i_connect":
+            if not self.KAKAOI_BASE_URL:
+                errors.append("KAKAOI_BASE_URL is required for kakao_i_connect provider.")
+            if not self.KAKAOI_ACCESS_TOKEN:
+                errors.append("KAKAOI_ACCESS_TOKEN is required for kakao_i_connect provider.")
+            if not self.KAKAO_SENDER_KEY:
+                errors.append("KAKAO_SENDER_KEY is required for kakao_i_connect provider.")
+            if not self.KAKAO_TEMPLATE_PROOF_DONE:
+                errors.append("KAKAO_TEMPLATE_PROOF_DONE is required for kakao_i_connect provider.")
+
+        if self.MESSAGING_PROVIDER == "sens_sms":
+            if not self.SENS_ACCESS_KEY:
+                errors.append("SENS_ACCESS_KEY is required for sens_sms provider.")
+            if not self.SENS_SECRET_KEY:
+                errors.append("SENS_SECRET_KEY is required for sens_sms provider.")
+            if not self.SENS_SMS_SERVICE_ID:
+                errors.append("SENS_SMS_SERVICE_ID is required for sens_sms provider.")
+            if not self.SENS_SMS_FROM:
+                errors.append("SENS_SMS_FROM is required for sens_sms provider.")
+
+        # SMS fallback validation
+        if self.FALLBACK_SMS_ENABLED and self.MESSAGING_PROVIDER == "kakao_i_connect":
+            if not all([self.SENS_ACCESS_KEY, self.SENS_SECRET_KEY, self.SENS_SMS_SERVICE_ID, self.SENS_SMS_FROM]):
+                warnings.warn(
+                    "FALLBACK_SMS_ENABLED=true but SENS SMS config is incomplete. SMS fallback will not work.",
+                    stacklevel=2
+                )
+
+        if errors:
+            raise ValueError("Configuration errors:\n  - " + "\n  - ".join(errors))
+
+        return self
+
+    def validate_startup(self) -> List[str]:
+        """
+        Perform startup validation and return list of warnings.
+        Call this at app startup to get warnings without failing.
+        """
+        warnings_list: List[str] = []
+
+        if not self.is_production:
+            warnings_list.append(f"Running in {self.APP_ENV} mode. Not suitable for production.")
+
+        if self.MESSAGING_PROVIDER == "mock":
+            warnings_list.append("Using mock messaging provider. No real notifications will be sent.")
+
+        if self.STORAGE_DRIVER == "local":
+            warnings_list.append("Using local file storage. Consider S3 for production.")
+
+        if not self.SENTRY_DSN:
+            warnings_list.append("SENTRY_DSN not configured. Error tracking disabled.")
+
+        return warnings_list
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -167,6 +243,27 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+def validate_settings_on_startup() -> None:
+    """
+    Validate settings at startup and print warnings.
+    Raises ValueError if critical settings are missing.
+    """
+    try:
+        s = get_settings()
+        warnings_list = s.validate_startup()
+
+        if warnings_list:
+            print("⚠️  Configuration Warnings:", file=sys.stderr)
+            for w in warnings_list:
+                print(f"   - {w}", file=sys.stderr)
+
+        print(f"✅ Configuration loaded successfully (ENV: {s.APP_ENV})", file=sys.stderr)
+
+    except ValueError as e:
+        print(f"❌ Configuration Error: {e}", file=sys.stderr)
+        raise
 
 
 settings = get_settings()

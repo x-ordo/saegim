@@ -56,11 +56,11 @@ export class ErrorBoundary extends React.Component<
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4" role="alert" aria-live="assertive">
           <div className="max-w-md w-full text-center space-y-6">
             <div className="flex justify-center">
               <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-destructive" />
+                <AlertCircle className="w-8 h-8 text-destructive" aria-hidden="true" />
               </div>
             </div>
 
@@ -83,7 +83,7 @@ export class ErrorBoundary extends React.Component<
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={this.handleRetry} variant="default">
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
                 다시 시도
               </Button>
               <Button onClick={this.handleReload} variant="outline">

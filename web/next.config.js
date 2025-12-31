@@ -3,6 +3,8 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // TODO: Re-enable after fixing Node.js 22 ESM compatibility with Ant Design
+  // transpilePackages: ['antd', '@ant-design/icons', '@ant-design/icons-svg', 'rc-util', 'rc-picker'],
   images: {
     remotePatterns: [
       {
