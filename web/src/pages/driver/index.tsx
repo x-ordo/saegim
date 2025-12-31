@@ -69,6 +69,22 @@ export default function DriverDashboardPage() {
           </Card>
         </div>
 
+        {/* Native Camera Tip */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl" aria-hidden="true">📱</span>
+              <div>
+                <p className="font-medium text-blue-800">더 빠른 방법!</p>
+                <p className="text-sm text-blue-600">
+                  기본 카메라 앱으로 QR을 스캔하면 바로 업로드할 수 있습니다.
+                  별도 로그인 없이 즉시 촬영 가능!
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* QR Scan Button */}
         <Link href="/driver/scan">
           <Button className="w-full h-14 text-lg">
