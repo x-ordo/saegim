@@ -185,9 +185,9 @@ export const FlowerProofUpload = ({
   // Already uploaded
   if (hasProof && status !== 'success') {
     return (
-      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" role="status">
         <CardContent className="py-6 text-center">
-          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" />
+          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-600" aria-hidden="true" />
           <p className="text-lg font-semibold text-green-800 dark:text-green-200">
             배송 완료
           </p>
@@ -205,10 +205,10 @@ export const FlowerProofUpload = ({
   // Offline warning
   if (!networkStatus.isOnline) {
     return (
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="border-amber-200 bg-amber-50" role="alert" aria-live="assertive">
         <CardContent className="py-6">
           <div className="flex items-center gap-3">
-            <WifiOff className="h-6 w-6 text-amber-600" />
+            <WifiOff className="h-6 w-6 text-amber-600" aria-hidden="true" />
             <div>
               <p className="font-semibold text-amber-800">오프라인 상태</p>
               <p className="text-sm text-amber-600">
@@ -224,12 +224,12 @@ export const FlowerProofUpload = ({
   // Success screen
   if (status === 'success') {
     return (
-      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" role="status" aria-live="polite">
         <CardContent className="py-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="relative">
-              <Flower2 className="h-16 w-16 text-green-600" />
-              <CheckCircle className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-white text-green-600" />
+              <Flower2 className="h-16 w-16 text-green-600" aria-hidden="true" />
+              <CheckCircle className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-white text-green-600" aria-hidden="true" />
             </div>
           </div>
           <h2 className="text-xl font-bold text-green-800 dark:text-green-200">
@@ -240,7 +240,7 @@ export const FlowerProofUpload = ({
           </p>
           {context && (
             <p className="mt-1 text-sm text-green-500">
-              <MapPin className="mr-1 inline h-3 w-3" />
+              <MapPin className="mr-1 inline h-3 w-3" aria-hidden="true" />
               {context}
             </p>
           )}
@@ -261,6 +261,7 @@ export const FlowerProofUpload = ({
         onChange={handleFileSelect}
         ref={inputRef}
         className="hidden"
+        aria-label="화환 배송 증빙 사진 파일 선택"
       />
 
       {/* Order context info */}
@@ -270,13 +271,13 @@ export const FlowerProofUpload = ({
             <div className="flex items-center gap-3 text-sm">
               {context && (
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
                   <span>{context}</span>
                 </div>
               )}
               {senderName && (
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  <Send className="h-4 w-4" />
+                  <Send className="h-4 w-4" aria-hidden="true" />
                   <span>{senderName}</span>
                 </div>
               )}
@@ -298,10 +299,10 @@ export const FlowerProofUpload = ({
 
       {/* Compression progress */}
       {status === 'compressing' && (
-        <Card>
+        <Card role="status" aria-live="polite">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
-              <ImageIcon className="h-5 w-5 animate-pulse text-primary" />
+              <ImageIcon className="h-5 w-5 animate-pulse text-primary" aria-hidden="true" />
               <div className="flex-1">
                 <p className="text-sm font-medium">이미지 최적화 중...</p>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -328,7 +329,7 @@ export const FlowerProofUpload = ({
             <div className="border-t p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Flower2 className="h-4 w-4 text-primary" />
+                  <Flower2 className="h-4 w-4 text-primary" aria-hidden="true" />
                   <span className="text-sm font-medium">배송 완료 사진</span>
                 </div>
                 <Badge variant="outline">{formatFileSize(file?.size || 0)}</Badge>
@@ -354,10 +355,10 @@ export const FlowerProofUpload = ({
 
       {/* Error message */}
       {status === 'error' && (
-        <Card className="border-destructive bg-destructive/10">
+        <Card className="border-destructive bg-destructive/10" role="alert" aria-live="assertive">
           <CardContent className="py-3">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
               <p className="text-sm text-destructive">{errorMessage}</p>
             </div>
           </CardContent>

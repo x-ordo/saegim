@@ -285,8 +285,8 @@ export const ProofWizard = ({
 
     if (state.status === 'success' && !isActive) {
       return (
-        <div className="flex items-center gap-2 text-green-600">
-          <CheckCircle className="h-5 w-5" />
+        <div className="flex items-center gap-2 text-green-600" role="status">
+          <CheckCircle className="h-5 w-5" aria-hidden="true" />
           <span className="font-medium">{stepLabel} 완료</span>
         </div>
       );
@@ -301,14 +301,15 @@ export const ProofWizard = ({
           onChange={(e) => handleFileSelect(e, step)}
           ref={inputRef}
           className="hidden"
+          aria-label={`${stepLabel} 사진 파일 선택`}
         />
 
         {/* Compression progress */}
         {state.status === 'compressing' && (
-          <Card>
+          <Card role="status" aria-live="polite">
             <CardContent className="py-4">
               <div className="flex items-center gap-3">
-                <ImageIcon className="h-5 w-5 animate-pulse text-primary" />
+                <ImageIcon className="h-5 w-5 animate-pulse text-primary" aria-hidden="true" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">이미지 최적화 중...</p>
                   <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -358,10 +359,10 @@ export const ProofWizard = ({
 
         {/* Error message */}
         {state.status === 'error' && (
-          <Card className="border-destructive bg-destructive/10">
+          <Card className="border-destructive bg-destructive/10" role="alert" aria-live="assertive">
             <CardContent className="py-3">
               <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-destructive" />
+                <AlertCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
                 <p className="text-sm text-destructive">{state.errorMessage}</p>
               </div>
             </CardContent>
@@ -418,8 +419,8 @@ export const ProofWizard = ({
         )}
 
         {state.status === 'success' && (
-          <div className="flex items-center justify-center gap-2 py-4 text-green-600">
-            <CheckCircle className="h-6 w-6" />
+          <div className="flex items-center justify-center gap-2 py-4 text-green-600" role="status" aria-live="polite">
+            <CheckCircle className="h-6 w-6" aria-hidden="true" />
             <span className="text-lg font-semibold">{stepLabel} 업로드 완료!</span>
           </div>
         )}
@@ -430,9 +431,9 @@ export const ProofWizard = ({
   // Complete screen
   if (currentStep === 'complete') {
     return (
-      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+      <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" role="status" aria-live="polite">
         <CardContent className="py-8 text-center">
-          <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-600" />
+          <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-600" aria-hidden="true" />
           <h2 className="text-xl font-bold text-green-800 dark:text-green-200">
             증빙 업로드 완료!
           </h2>
@@ -450,10 +451,10 @@ export const ProofWizard = ({
   // Offline warning
   if (!networkStatus.isOnline) {
     return (
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="border-amber-200 bg-amber-50" role="alert" aria-live="assertive">
         <CardContent className="py-6">
           <div className="flex items-center gap-3">
-            <WifiOff className="h-6 w-6 text-amber-600" />
+            <WifiOff className="h-6 w-6 text-amber-600" aria-hidden="true" />
             <div>
               <p className="font-semibold text-amber-800">오프라인 상태</p>
               <p className="text-sm text-amber-600">
@@ -469,30 +470,34 @@ export const ProofWizard = ({
   return (
     <div className="space-y-6">
       {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2">
+      <nav aria-label="증빙 업로드 진행 단계" className="flex items-center justify-center gap-2">
         <div
           className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
             currentStep === 'before' || beforeState.status === 'success'
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-muted-foreground'
           }`}
+          aria-current={currentStep === 'before' ? 'step' : undefined}
+          aria-label={`1단계 상품 사진${beforeState.status === 'success' ? ' 완료' : currentStep === 'before' ? ' 진행 중' : ''}`}
         >
-          {beforeState.status === 'success' ? <CheckCircle className="h-4 w-4" /> : '1'}
+          {beforeState.status === 'success' ? <CheckCircle className="h-4 w-4" aria-hidden="true" /> : '1'}
         </div>
-        <div className="h-0.5 w-8 bg-muted" />
+        <div className="h-0.5 w-8 bg-muted" aria-hidden="true" />
         <div
           className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
             currentStep === 'after' || afterState.status === 'success'
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-muted-foreground'
           }`}
+          aria-current={currentStep === 'after' ? 'step' : undefined}
+          aria-label={`2단계 배송 증빙${afterState.status === 'success' ? ' 완료' : currentStep === 'after' ? ' 진행 중' : ''}`}
         >
-          {afterState.status === 'success' ? <CheckCircle className="h-4 w-4" /> : '2'}
+          {afterState.status === 'success' ? <CheckCircle className="h-4 w-4" aria-hidden="true" /> : '2'}
         </div>
-      </div>
+      </nav>
 
       {/* Step title */}
-      <div className="text-center">
+      <div className="text-center" aria-live="polite">
         <h3 className="text-lg font-semibold">
           {currentStep === 'before' ? 'Step 1: 상품 사진' : 'Step 2: 배송 증빙'}
         </h3>

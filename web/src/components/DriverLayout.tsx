@@ -46,7 +46,7 @@ export const DriverLayout = ({
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" role="status" aria-busy="true" aria-label="로딩 중">
         <div className="text-gray-500">Loading...</div>
       </div>
     );
@@ -76,13 +76,13 @@ export const DriverLayout = ({
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-16">
+      <main id="main-content" className="flex-1 overflow-auto pb-16">
         {children}
       </main>
 
       {/* Bottom Navigation */}
       {showNav && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10" aria-label="드라이버 메뉴">
           <div className="flex justify-around items-center h-14">
             {navItems.map((item) => {
               const isActive = router.pathname === item.href;
@@ -93,8 +93,9 @@ export const DriverLayout = ({
                   className={`flex flex-col items-center justify-center flex-1 h-full ${
                     isActive ? 'text-orange-500' : 'text-gray-500'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-xl" aria-hidden="true">{item.icon}</span>
                   <span className="text-xs mt-0.5">{item.label}</span>
                 </Link>
               );

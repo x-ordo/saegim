@@ -131,11 +131,20 @@ function AdminLayoutShell({
   showClerkAuth: boolean;
 }) {
   const router = useRouter();
+  const currentPath = router.pathname;
+
+  // Helper to determine if a nav link is currently active
+  const isActive = (href: string) => {
+    if (href === '/app') {
+      return currentPath === '/app';
+    }
+    return currentPath.startsWith(href);
+  };
 
   return (
     <div className="page">
       <div className="container">
-        <div className="topbar no-print">
+        <header className="topbar no-print">
           <div className="brand">
             <div className="name">새김</div>
             <div className="muted" style={{ marginLeft: 10 }}>
@@ -143,19 +152,19 @@ function AdminLayoutShell({
             </div>
           </div>
 
-          <div className="nav">
-            <Link href="/app">대시보드</Link>
-            <Link href="/app/orders">주문</Link>
-            <Link href="/app/products">상품</Link>
-            <Link href="/app/deliveries">배송</Link>
-            <Link href="/app/qr">QR</Link>
-            <Link href="/app/couriers">배송기사</Link>
-            <Link href="/app/notifications">알림</Link>
-            <Link href="/app/reminders">리마인더</Link>
-            <Link href="/app/analytics">분석</Link>
-            <Link href="/app/orgs">조직</Link>
-            {isOrgAdmin && <Link href="/app/settings/branding">설정</Link>}
-          </div>
+          <nav className="nav" aria-label="주요 메뉴">
+            <Link href="/app" aria-current={isActive('/app') ? 'page' : undefined}>대시보드</Link>
+            <Link href="/app/orders" aria-current={isActive('/app/orders') ? 'page' : undefined}>주문</Link>
+            <Link href="/app/products" aria-current={isActive('/app/products') ? 'page' : undefined}>상품</Link>
+            <Link href="/app/deliveries" aria-current={isActive('/app/deliveries') ? 'page' : undefined}>배송</Link>
+            <Link href="/app/qr" aria-current={isActive('/app/qr') ? 'page' : undefined}>QR</Link>
+            <Link href="/app/couriers" aria-current={isActive('/app/couriers') ? 'page' : undefined}>배송기사</Link>
+            <Link href="/app/notifications" aria-current={isActive('/app/notifications') ? 'page' : undefined}>알림</Link>
+            <Link href="/app/reminders" aria-current={isActive('/app/reminders') ? 'page' : undefined}>리마인더</Link>
+            <Link href="/app/analytics" aria-current={isActive('/app/analytics') ? 'page' : undefined}>분석</Link>
+            <Link href="/app/orgs" aria-current={isActive('/app/orgs') ? 'page' : undefined}>조직</Link>
+            {isOrgAdmin && <Link href="/app/settings/branding" aria-current={isActive('/app/settings') ? 'page' : undefined}>설정</Link>}
+          </nav>
 
           <div className="actions">
             {showClerkAuth ? (
@@ -177,44 +186,46 @@ function AdminLayoutShell({
               <span className="muted" style={{ fontSize: 12 }}>Clerk 미설정 (개발 모드)</span>
             )}
           </div>
-        </div>
+        </header>
 
-        <div className="row" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{title}</div>
-          <div className="muted">v1 · 외부 로그인(Clerk) · 멀티테넌트(org_id → tenant)</div>
-        </div>
+        <main id="main-content">
+          <div className="row" style={{ marginBottom: 12 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700 }}>{title}</h1>
+            <div className="muted">v1 · 외부 로그인(Clerk) · 멀티테넌트(org_id → tenant)</div>
+          </div>
 
-        {meErr && <div className="danger">{meErr}</div>}
+          {meErr && <div className="danger" role="alert">{meErr}</div>}
 
-        {isLoaded && isSignedIn && !orgId && !allowNoOrg && (
-          <div className="card">
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>조직이 선택되지 않았습니다</div>
+          {isLoaded && isSignedIn && !orgId && !allowNoOrg && (
+            <div className="card">
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>조직이 선택되지 않았습니다</div>
+              <div className="muted" style={{ marginBottom: 10 }}>
+                백오피스는 조직(업체) 단위로 스코프가 잠깁니다. 먼저 조직을 만들거나 선택하세요.
+              </div>
+              <button className="btn" onClick={() => router.push('/app/onboarding')}>
+                조직 설정으로 이동
+              </button>
+            </div>
+          )}
+
+          {!showClerkAuth && (
+            <div className="card" style={{ marginBottom: 16, background: '#fef3c7', border: '1px solid #f59e0b' }} role="alert">
+              <div style={{ fontWeight: 700, marginBottom: 6, color: '#92400e' }}>개발 모드</div>
+              <div style={{ fontSize: 13, color: '#78350f' }}>
+                Clerk가 설정되지 않아 인증 없이 UI를 미리봅니다.
+                실제 데이터를 보려면 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY를 설정하세요.
+              </div>
+            </div>
+          )}
+
+          {me?.organization && (
             <div className="muted" style={{ marginBottom: 10 }}>
-              백오피스는 조직(업체) 단위로 스코프가 잠깁니다. 먼저 조직을 만들거나 선택하세요.
+              현재 조직: <b>{me.organization.name}</b> (plan: {me.organization.plan_type})
             </div>
-            <button className="btn" onClick={() => router.push('/app/onboarding')}>
-              조직 설정으로 이동
-            </button>
-          </div>
-        )}
+          )}
 
-        {!showClerkAuth && (
-          <div className="card" style={{ marginBottom: 16, background: '#fef3c7', border: '1px solid #f59e0b' }}>
-            <div style={{ fontWeight: 700, marginBottom: 6, color: '#92400e' }}>개발 모드</div>
-            <div style={{ fontSize: 13, color: '#78350f' }}>
-              Clerk가 설정되지 않아 인증 없이 UI를 미리봅니다.
-              실제 데이터를 보려면 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY를 설정하세요.
-            </div>
-          </div>
-        )}
-
-        {me?.organization && (
-          <div className="muted" style={{ marginBottom: 10 }}>
-            현재 조직: <b>{me.organization.name}</b> (plan: {me.organization.plan_type})
-          </div>
-        )}
-
-        {children}
+          {children}
+        </main>
       </div>
     </div>
   );
