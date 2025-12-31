@@ -1,8 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { DriverLayout } from '../../components/DriverLayout';
-import { getDeliveryByToken } from '../../services/driverApi';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -10,7 +8,6 @@ import { Input } from '../../components/ui/input';
 export const getServerSideProps: GetServerSideProps = async () => ({ props: {} });
 
 export default function ScanPage() {
-  const router = useRouter();
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualToken, setManualToken] = useState('');
@@ -82,43 +79,28 @@ export default function ScanPage() {
     setScanning(false);
   };
 
-  const processToken = async (token: string) => {
+  const processToken = (token: string) => {
     setProcessing(true);
     setError(null);
 
-    try {
-      // Extract token from URL if full URL is scanned
-      let cleanToken = token;
-      const match = token.match(/\/proof\/([a-zA-Z0-9_-]+)/);
-      if (match) {
-        cleanToken = match[1];
-      }
-
-      // Fetch delivery by token
-      const delivery = await getDeliveryByToken(cleanToken);
-
-      // Navigate to delivery detail
-      router.push(`/driver/deliveries/${delivery.id}`);
-    } catch (e: any) {
-      const msg = e?.message || String(e);
-      if (msg.includes('TOKEN_NOT_FOUND')) {
-        setError('유효하지 않은 QR 코드입니다.');
-      } else if (msg.includes('ORG_MISMATCH')) {
-        setError('다른 조직의 주문입니다.');
-      } else {
-        setError(`조회 실패: ${msg}`);
-      }
-    } finally {
-      setProcessing(false);
+    // Extract token from URL if full URL is scanned
+    let cleanToken = token;
+    const match = token.match(/\/proof\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+      cleanToken = match[1];
     }
+
+    // Magic Link: 로그인 없이 바로 증빙 업로드 페이지로 이동
+    // API 호출 생략 → /proof/{token} 페이지에서 토큰 검증
+    window.location.href = `/proof/${cleanToken}`;
   };
 
-  const handleManualSubmit = async () => {
+  const handleManualSubmit = () => {
     if (!manualToken.trim()) {
       setError('토큰을 입력해주세요.');
       return;
     }
-    await processToken(manualToken.trim());
+    processToken(manualToken.trim());
   };
 
   return (
@@ -134,7 +116,7 @@ export default function ScanPage() {
         {/* Processing */}
         {processing && (
           <div className="text-center py-4">
-            <div className="text-gray-500">주문 정보 조회 중...</div>
+            <div className="text-gray-500">업로드 페이지로 이동 중...</div>
           </div>
         )}
 
