@@ -157,6 +157,7 @@ class CsvImportOut(BaseModel):
     created_count: int
     created_order_ids: list[int]
     errors: list[CsvImportError] = []
+    generated_tokens_count: int = 0
 
 
 # --- Order List (Paginated) ---

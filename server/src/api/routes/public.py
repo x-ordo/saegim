@@ -191,7 +191,7 @@ async def confirm_upload(
         )
 
 
-@router.post("/proof/{token}/upload", response_model=ProofUploadResponse)
+@router.post("/proof/{token}/upload", response_model=ProofUploadResponse, deprecated=True)
 @limiter.limit(get_rate_limit())
 async def upload_proof(
     request: Request,
@@ -202,9 +202,12 @@ async def upload_proof(
     db: Session = Depends(get_db),
 ):
     """
-    Upload proof image with type (BEFORE, AFTER, RECEIPT, DAMAGE, OTHER).
-    Triggers dual notifications only for AFTER type.
-    Rate limited to prevent abuse.
+    [DEPRECATED] Upload proof image directly to server.
+
+    Use /proof/{token}/presign + /proof/{token}/confirm instead.
+    This endpoint will be removed in a future version.
+
+    Sunset: 2025-03-01
     """
     # Validate file type
     if not file.content_type or not file.content_type.startswith("image/"):

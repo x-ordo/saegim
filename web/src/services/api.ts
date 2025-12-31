@@ -189,7 +189,7 @@ export const confirmUpload = async (
 };
 
 /**
- * Upload proof with type - uses presigned URL if available, falls back to direct upload
+ * Upload proof with type - uses presigned URL
  */
 export const uploadProof = async (
   token: string,
@@ -197,30 +197,19 @@ export const uploadProof = async (
   proofType: ProofType = 'AFTER',
   onProgress?: (percent: number) => void
 ): Promise<UploadResponse> => {
-  try {
-    // Try presigned upload first (for S3)
-    const presigned = await getPresignedUpload(token, file.name, file.type, proofType);
+  // Get presigned URL
+  const presigned = await getPresignedUpload(token, file.name, file.type, proofType);
 
-    // Check if it's a local upload (URL contains /upload/local)
-    if (presigned.upload_url.includes('/upload/local')) {
-      // Fall back to direct upload for local storage
-      return uploadProofDirect(token, file, proofType);
-    }
+  // Upload to S3 (or local storage endpoint)
+  await uploadToPresigned(presigned, file, onProgress);
 
-    // Upload to S3
-    await uploadToPresigned(presigned, file, onProgress);
-
-    // Confirm upload
-    return confirmUpload(token, presigned.file_key, proofType);
-  } catch (error) {
-    // Fall back to direct upload if presigned fails
-    console.warn('Presigned upload failed, falling back to direct upload:', error);
-    return uploadProofDirect(token, file, proofType);
-  }
+  // Confirm upload
+  return confirmUpload(token, presigned.file_key, proofType);
 };
 
 /**
  * Direct upload to server (fallback for local storage)
+ * @deprecated Use presigned URL upload instead. This endpoint will be removed.
  */
 export const uploadProofDirect = async (
   token: string,
@@ -254,59 +243,25 @@ export interface UploadProgressCallback {
 }
 
 /**
- * Upload proof with progress tracking using XHR
- * 진행률 추적을 지원하는 업로드 함수 (XHR 기반)
+ * Upload proof with progress tracking (presigned URL)
+ * 진행률 추적을 지원하는 업로드 함수 (Presigned URL 기반)
+ *
+ * Flow: getPresignedUpload → uploadToPresigned (S3) → confirmUpload
  */
 export const uploadProofWithProgress = async (
   token: string,
   file: File,
   proofType: ProofType = 'AFTER',
   onProgress?: UploadProgressCallback,
-  timeoutMs: number = 60000
 ): Promise<UploadResponse> => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append('file', file);
+  // Step 1: Get presigned URL
+  const presigned = await getPresignedUpload(token, file.name, file.type, proofType);
 
-    // Progress tracking
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable && onProgress) {
-        const percent = Math.round((e.loaded / e.total) * 100);
-        onProgress(percent);
-      }
-    });
+  // Step 2: Upload to S3 (or local storage endpoint)
+  await uploadToPresigned(presigned, file, onProgress);
 
-    // Success handler
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText));
-        } catch {
-          resolve({ status: 'success', proof_id: 0, proof_type: proofType, message: 'Upload completed' });
-        }
-      } else if (xhr.status === 429) {
-        reject(new Error('RATE_LIMITED'));
-      } else {
-        try {
-          const err = JSON.parse(xhr.responseText);
-          reject(new Error(err.detail || 'Upload failed'));
-        } catch {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      }
-    });
-
-    // Error handlers
-    xhr.addEventListener('error', () => reject(new Error('NETWORK_ERROR')));
-    xhr.addEventListener('timeout', () => reject(new Error('TIMEOUT')));
-    xhr.addEventListener('abort', () => reject(new Error('UPLOAD_ABORTED')));
-
-    // Configure and send
-    xhr.timeout = timeoutMs;
-    xhr.open('POST', `${API_BASE_URL}/public/proof/${token}/upload?proof_type=${proofType}`);
-    xhr.send(formData);
-  });
+  // Step 3: Confirm upload
+  return confirmUpload(token, presigned.file_key, proofType);
 };
 
 /**
